@@ -14,7 +14,6 @@ import {
   Copy, 
   Check, 
   ChevronRight,
-  ChevronDown,
   TrendingDown,
   Info,
   RotateCcw,
@@ -22,6 +21,7 @@ import {
   Lock,
   Unlock,
   X,
+  Menu,
   Save,
   HandMetal,
   FileText,
@@ -399,6 +399,7 @@ const compressImage = (file: File, maxWidth = 600, quality = 0.6): Promise<strin
 export default function App() {
   // Navigation State
   const [view, setView] = useState<'calculator' | 'templates' | 'manual'>('calculator');
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Config State
   const [config, setConfig] = useState<QuoteConfig>(DEFAULT_CONFIG);
@@ -429,24 +430,6 @@ export default function App() {
 
   // Admin State
   const [isAdminOpen, setIsAdminOpen] = useState(false);
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
-  const [showSticky, setShowSticky] = useState(false);
-  const summaryRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setShowSticky(!entry.isIntersecting);
-      },
-      { threshold: 0.1 }
-    );
-    if (summaryRef.current) observer.observe(summaryRef.current);
-    return () => observer.disconnect();
-  }, []);
-
-  const scrollToSummary = () => {
-    summaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  };
   const [savedModels, setSavedModels] = useState<MarketTemplate[]>([]);
   const [isSavingModel, setIsSavingModel] = useState(false);
   const [newModelName, setNewModelName] = useState('');
@@ -1581,10 +1564,10 @@ Gerado por SacolaPro
             <h1 className="text-xl font-bold tracking-tight text-slate-800">Sacola<span className="text-emerald-600">Pro</span></h1>
           </div>
           
-          <nav className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 overflow-x-auto no-scrollbar max-w-[200px] xs:max-w-[250px] sm:max-w-none mx-2">
+          <nav className="hidden md:flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
             <button 
               onClick={() => setView('calculator')}
-              className={`px-3 sm:px-4 py-1.5 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
+              className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
                 view === 'calculator' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
@@ -1592,70 +1575,113 @@ Gerado por SacolaPro
             </button>
             <button 
               onClick={() => setView('templates')}
-              className={`px-3 sm:px-4 py-1.5 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
+              className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
                 view === 'templates' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              Modelos
+              Modelos Prontos
             </button>
             <button 
               onClick={() => setView('manual')}
-              className={`px-3 sm:px-4 py-1.5 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
+              className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
                 view === 'manual' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              Manual
+              Orç. Manual
             </button>
           </nav>
 
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={resetConfig}
-              className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all flex items-center gap-2 text-sm font-bold"
+          <div className="flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-3">
+              <button 
+                onClick={resetConfig}
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all flex items-center gap-2 text-sm font-bold"
+              >
+                <RotateCcw size={18} /> <span>Recomeçar</span>
+              </button>
+              <button 
+                onClick={() => setIsAdminOpen(true)}
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all"
+              >
+                <Settings size={18} />
+              </button>
+              <button 
+                onClick={handleLogout}
+                className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition-all flex items-center gap-2"
+                title="Sair do Sistema"
+              >
+                <X size={14} /> Sair
+              </button>
+            </div>
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="md:hidden p-3 text-slate-600 hover:bg-slate-100 rounded-2xl transition-all"
             >
-              <RotateCcw size={18} /> <span className="hidden sm:inline">Recomeçar</span>
-            </button>
-            <button 
-              onClick={() => setIsAdminOpen(true)}
-              className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all"
-            >
-              <Settings size={18} />
-            </button>
-            <button 
-              onClick={handleLogout}
-              className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition-all flex items-center gap-2"
-              title="Sair do Sistema"
-            >
-              <X size={14} /> Sair
+              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
         </div>
-      </header>
-      
-      {/* Sticky Mobile Summary (Calculator) */}
-      <AnimatePresence>
-        {view === 'calculator' && showSticky && currentResult && (
-          <motion.div
-            initial={{ y: -100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: -100, opacity: 0 }}
-            className="fixed top-[64px] left-0 right-0 z-[45] bg-slate-900/95 backdrop-blur-md border-b border-white/10 px-5 py-3 flex items-center justify-between shadow-2xl lg:hidden cursor-pointer"
-            onClick={scrollToSummary}
-          >
-            <div className="flex flex-col">
-              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Resumo do Pedido</span>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-xl font-black text-white">R$ {currentResult.totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                <span className="text-[10px] font-bold text-slate-500">{config.quantity.toLocaleString()} un</span>
+
+        {/* Mobile Menu Overlay */}
+        <AnimatePresence>
+          {isMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="md:hidden bg-white border-t border-slate-100 overflow-hidden"
+            >
+              <div className="p-4 space-y-2">
+                <button 
+                  onClick={() => { setView('calculator'); setIsMenuOpen(false); }}
+                  className={`w-full px-6 py-4 rounded-2xl text-sm font-black uppercase tracking-widest text-left transition-all ${
+                    view === 'calculator' ? 'bg-emerald-50 text-emerald-700 border-l-4 border-emerald-500' : 'text-slate-500'
+                  }`}
+                >
+                  Calculadora
+                </button>
+                <button 
+                  onClick={() => { setView('templates'); setIsMenuOpen(false); }}
+                  className={`w-full px-6 py-4 rounded-2xl text-sm font-black uppercase tracking-widest text-left transition-all ${
+                    view === 'templates' ? 'bg-emerald-50 text-emerald-700 border-l-4 border-emerald-500' : 'text-slate-500'
+                  }`}
+                >
+                  Modelos Prontos
+                </button>
+                <button 
+                  onClick={() => { setView('manual'); setIsMenuOpen(false); }}
+                  className={`w-full px-6 py-4 rounded-2xl text-sm font-black uppercase tracking-widest text-left transition-all ${
+                    view === 'manual' ? 'bg-emerald-50 text-emerald-700 border-l-4 border-emerald-500' : 'text-slate-500'
+                  }`}
+                >
+                  Orç. Manual
+                </button>
+                <div className="h-px bg-slate-100 my-2" />
+                <button 
+                  onClick={() => { setIsAdminOpen(true); setIsMenuOpen(false); }}
+                  className="w-full px-6 py-4 rounded-2xl text-sm font-black uppercase tracking-widest text-slate-500 text-left flex items-center gap-3"
+                >
+                  <Settings size={20} /> Configurações
+                </button>
+                <button 
+                  onClick={resetConfig}
+                  className="w-full px-6 py-4 rounded-2xl text-sm font-black uppercase tracking-widest text-slate-500 text-left flex items-center gap-3"
+                >
+                  <RotateCcw size={20} /> Recomeçar
+                </button>
+                <button 
+                  onClick={handleLogout}
+                  className="w-full px-6 py-4 rounded-2xl text-sm font-black uppercase tracking-widest text-rose-500 text-left flex items-center gap-3"
+                >
+                  <X size={20} /> Sair do Sistema
+                </button>
               </div>
-            </div>
-            <div className="flex items-center gap-2 bg-emerald-600/20 text-emerald-400 px-3 py-2 rounded-xl border border-emerald-600/30">
-              <span className="text-[10px] font-black uppercase tracking-widest">Detalhes</span>
-              <ChevronDown size={14} className="animate-bounce" />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* Alerts Overlay */}
@@ -2292,8 +2318,8 @@ Gerado por SacolaPro
         </div>
 
         {/* Result Column */}
-        <div className="lg:col-span-5 space-y-6" ref={summaryRef}>
-          <section className="bg-slate-900 rounded-[2.5rem] shadow-2xl p-8 text-white sticky top-24 border border-white/5">
+        <div className="lg:col-span-5 space-y-6">
+          <section className="bg-slate-900 rounded-[2.5rem] shadow-2xl p-8 text-white md:sticky md:top-24 border border-white/5">
             <div className="space-y-8">
               <div className="flex justify-between items-start">
                 <div>
