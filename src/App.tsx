@@ -14,6 +14,7 @@ import {
   Copy, 
   Check, 
   ChevronRight,
+  ChevronDown,
   TrendingDown,
   Info,
   RotateCcw,
@@ -428,6 +429,24 @@ export default function App() {
 
   // Admin State
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  const [showSticky, setShowSticky] = useState(false);
+  const summaryRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setShowSticky(!entry.isIntersecting);
+      },
+      { threshold: 0.1 }
+    );
+    if (summaryRef.current) observer.observe(summaryRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const scrollToSummary = () => {
+    summaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
   const [savedModels, setSavedModels] = useState<MarketTemplate[]>([]);
   const [isSavingModel, setIsSavingModel] = useState(false);
   const [newModelName, setNewModelName] = useState('');
@@ -1562,10 +1581,10 @@ Gerado por SacolaPro
             <h1 className="text-xl font-bold tracking-tight text-slate-800">Sacola<span className="text-emerald-600">Pro</span></h1>
           </div>
           
-          <nav className="hidden md:flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+          <nav className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 overflow-x-auto no-scrollbar max-w-[200px] xs:max-w-[250px] sm:max-w-none mx-2">
             <button 
               onClick={() => setView('calculator')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
+              className={`px-3 sm:px-4 py-1.5 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
                 view === 'calculator' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
@@ -1573,19 +1592,19 @@ Gerado por SacolaPro
             </button>
             <button 
               onClick={() => setView('templates')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
+              className={`px-3 sm:px-4 py-1.5 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
                 view === 'templates' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              Modelos Prontos
+              Modelos
             </button>
             <button 
               onClick={() => setView('manual')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
+              className={`px-3 sm:px-4 py-1.5 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
                 view === 'manual' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
-              Orç. Manual
+              Manual
             </button>
           </nav>
 
@@ -1612,6 +1631,31 @@ Gerado por SacolaPro
           </div>
         </div>
       </header>
+      
+      {/* Sticky Mobile Summary (Calculator) */}
+      <AnimatePresence>
+        {view === 'calculator' && showSticky && currentResult && (
+          <motion.div
+            initial={{ y: -100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -100, opacity: 0 }}
+            className="fixed top-[64px] left-0 right-0 z-[45] bg-slate-900/95 backdrop-blur-md border-b border-white/10 px-5 py-3 flex items-center justify-between shadow-2xl lg:hidden cursor-pointer"
+            onClick={scrollToSummary}
+          >
+            <div className="flex flex-col">
+              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Resumo do Pedido</span>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-xl font-black text-white">R$ {currentResult.totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span className="text-[10px] font-bold text-slate-500">{config.quantity.toLocaleString()} un</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 bg-emerald-600/20 text-emerald-400 px-3 py-2 rounded-xl border border-emerald-600/30">
+              <span className="text-[10px] font-black uppercase tracking-widest">Detalhes</span>
+              <ChevronDown size={14} className="animate-bounce" />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         {/* Alerts Overlay */}
@@ -2248,7 +2292,7 @@ Gerado por SacolaPro
         </div>
 
         {/* Result Column */}
-        <div className="lg:col-span-5 space-y-6">
+        <div className="lg:col-span-5 space-y-6" ref={summaryRef}>
           <section className="bg-slate-900 rounded-[2.5rem] shadow-2xl p-8 text-white sticky top-24 border border-white/5">
             <div className="space-y-8">
               <div className="flex justify-between items-start">

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   Plus, Trash2, Copy, Check, FileText, ChevronDown, ChevronUp,
   Package, TrendingUp, AlertCircle, ClipboardList, Building2, Hash, X
@@ -459,6 +459,24 @@ export const ManualQuote: React.FC<ManualQuoteProps> = ({ catalogProducts = [] }
   const [productionTime, setProduction] = useState('15 dias úteis');
   const [items, setItems]               = useState<ManualItem[]>([DEFAULT_ITEM()]);
   const [copied, setCopied]             = useState(false);
+  const [showSticky, setShowSticky]     = useState(false);
+  const summaryRef                      = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // Only show sticky on small screens AND when original summary is hidden
+        setShowSticky(!entry.isIntersecting);
+      },
+      { threshold: 0.1 }
+    );
+    if (summaryRef.current) observer.observe(summaryRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const scrollToSummary = () => {
+    summaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
 
   // Helper to auto-format numeric inputs
   const formatInput = (value: string, suffix: string) => {
@@ -615,9 +633,34 @@ export const ManualQuote: React.FC<ManualQuoteProps> = ({ catalogProducts = [] }
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 relative">
       {/* Autocomplete lists */}
       <DataLists />
+
+      {/* Sticky Mobile Summary */}
+      <AnimatePresence>
+        {showSticky && totalSale > 0 && (
+          <motion.div
+            initial={{ y: -100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -100, opacity: 0 }}
+            className="fixed top-[64px] left-0 right-0 z-[45] bg-slate-900/95 backdrop-blur-md border-b border-white/10 px-5 py-3 flex items-center justify-between shadow-2xl lg:hidden cursor-pointer"
+            onClick={scrollToSummary}
+          >
+            <div className="flex flex-col">
+              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Resumo Atual</span>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-xl font-black text-white">R$ {formatCurrency(totalSale)}</span>
+                <span className="text-[10px] font-bold text-slate-500">{items.length} item{items.length !== 1 ? 's' : ''}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 bg-emerald-600/20 text-emerald-400 px-3 py-2 rounded-xl border border-emerald-600/30">
+              <span className="text-[10px] font-black uppercase tracking-widest">Detalhes</span>
+              <ChevronDown size={14} className="animate-bounce" />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Left column ─────────────────────────────────────────────────── */}
       <div className="lg:col-span-7 space-y-6">
@@ -737,7 +780,7 @@ export const ManualQuote: React.FC<ManualQuoteProps> = ({ catalogProducts = [] }
       </div>
 
       {/* ── Right column (summary) ────────────────────────────────────────── */}
-      <div className="lg:col-span-5 space-y-6">
+      <div className="lg:col-span-5 space-y-6" ref={summaryRef}>
         <section className="bg-slate-900 rounded-[2.5rem] shadow-2xl p-8 text-white sticky top-24 border border-white/5">
           <div className="space-y-6">
 
