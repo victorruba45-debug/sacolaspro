@@ -35,6 +35,7 @@ import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { supabase } from './lib/supabase';
 import { Auth } from './components/Auth';
+import { ManualQuote } from './components/ManualQuote';
 import { Session } from '@supabase/supabase-js';
 import { BagCategory, BagType, QuoteConfig, CalculationResult, Recommendation, HandleType, BagPreset, MarketTemplate } from './types';
 import { 
@@ -396,7 +397,7 @@ const compressImage = (file: File, maxWidth = 600, quality = 0.6): Promise<strin
 
 export default function App() {
   // Navigation State
-  const [view, setView] = useState<'calculator' | 'templates'>('calculator');
+  const [view, setView] = useState<'calculator' | 'templates' | 'manual'>('calculator');
 
   // Config State
   const [config, setConfig] = useState<QuoteConfig>(DEFAULT_CONFIG);
@@ -1578,6 +1579,14 @@ Gerado por SacolaPro
             >
               Modelos Prontos
             </button>
+            <button 
+              onClick={() => setView('manual')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
+                view === 'manual' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Orç. Manual
+            </button>
           </nav>
 
           <div className="flex items-center gap-3">
@@ -1625,7 +1634,9 @@ Gerado por SacolaPro
           </AnimatePresence>
         </div>
 
-        {view === 'templates' ? (
+        {view === 'manual' ? (
+          <ManualQuote catalogProducts={bagTypes.map(t => t.name)} />
+        ) : view === 'templates' ? (
           <div className="space-y-8">
             {/* Saved Models Section */}
             {savedModels.length > 0 && (
@@ -1775,7 +1786,7 @@ Gerado por SacolaPro
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8"> {/* calculator */}
             {/* Configuration Column */}
             <div className="lg:col-span-7 space-y-6">
           <section className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
@@ -2360,7 +2371,7 @@ Gerado por SacolaPro
           </div>
         </div>
       </div>
-    )}
+    )}{/* end views */}
   </main>
 
       <footer className="max-w-7xl mx-auto px-4 py-12 border-t border-slate-200 mt-12">
