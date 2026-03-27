@@ -21,6 +21,8 @@ import {
   SlidersHorizontal
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { storage } from '../lib/storage';
 import { Budget, Client } from '../types';
 
@@ -132,6 +134,41 @@ export const QuotesDashboard: React.FC<QuotesDashboardProps> = ({ onEdit }) => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const exportToPdf = () => {
+    if (filteredBudgets.length === 0) return;
+    
+    const doc = new jsPDF();
+    
+    doc.setFontSize(16);
+    doc.text('Relatório de Orçamentos - SacolaPro', 14, 15);
+    
+    doc.setFontSize(10);
+    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 14, 22);
+
+    const headers = [['ID', 'Data', 'Cliente', 'Status', 'Itens', 'Custo Total', 'Venda Total', 'Lucro']];
+    const data = filteredBudgets.map(b => [
+      b.id.split('-')[0].toUpperCase(),
+      new Date(b.date).toLocaleDateString('pt-BR'),
+      getClientName(b.clientId),
+      statusMap[b.status as keyof typeof statusMap].label,
+      b.items.length.toString(),
+      `R$ ${b.totalCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      `R$ ${b.totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      `R$ ${(b.totalValue - b.totalCost).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+    ]);
+
+    autoTable(doc, {
+      startY: 28,
+      head: headers,
+      body: data,
+      theme: 'grid',
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [5, 150, 105] }, // emerald-600
+    });
+
+    doc.save(`relatorio_orcamentos_${filterPeriod}_${new Date().getTime()}.pdf`);
   };
 
   const statusMap = {
@@ -299,14 +336,26 @@ export const QuotesDashboard: React.FC<QuotesDashboardProps> = ({ onEdit }) => {
                   <X size={16}/> Limpar <span className="hidden sm:inline">({activeFiltersCount})</span>
                 </button>
               )}
-              <button
-                onClick={exportToCsv}
-                disabled={filteredBudgets.length === 0}
-                className="w-full sm:w-auto px-5 py-3 lg:py-2.5 bg-slate-900 justify-center text-white rounded-xl text-[14px] lg:text-[13px] font-semibold flex items-center gap-2.5 hover:bg-emerald-600 hover:shadow-lg hover:shadow-emerald-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed group shrink-0"
-              >
-                <Download size={18} className="group-hover:-translate-y-0.5 transition-transform" />
-                <span>Exportar XLS</span>
-              </button>
+              <div className="flex w-full sm:w-auto gap-2">
+                <button
+                  onClick={exportToPdf}
+                  disabled={filteredBudgets.length === 0}
+                  className="w-full sm:w-auto px-4 py-3 lg:py-2.5 bg-emerald-600 justify-center text-white rounded-xl text-[14px] lg:text-[13px] font-semibold flex items-center gap-2 hover:bg-emerald-700 hover:shadow-lg hover:shadow-emerald-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed group shrink-0"
+                  title="Exportar para PDF"
+                >
+                  <Download size={18} className="group-hover:-translate-y-0.5 transition-transform" />
+                  <span className="hidden sm:inline">PDF</span>
+                </button>
+                <button
+                  onClick={exportToCsv}
+                  disabled={filteredBudgets.length === 0}
+                  className="w-full sm:w-auto px-4 py-3 lg:py-2.5 bg-slate-900 justify-center text-white rounded-xl text-[14px] lg:text-[13px] font-semibold flex items-center gap-2 hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-900/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed group shrink-0"
+                  title="Exportar para Excel (CSV)"
+                >
+                  <Download size={18} className="group-hover:-translate-y-0.5 transition-transform" />
+                  <span className="hidden sm:inline">Excel</span>
+                </button>
+              </div>
               
               <button onClick={() => setIsFilterDrawerOpen(false)} className="lg:hidden w-full py-4 mt-2 bg-emerald-600 text-white rounded-xl font-black text-sm uppercase tracking-widest shadow-lg shadow-emerald-500/20">
                  Ver Resultados
