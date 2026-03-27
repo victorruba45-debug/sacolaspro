@@ -65,7 +65,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onNavigate }) => {
   ] as const;
 
   return (
-    <div className="max-w-[85rem] mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
+    <div className="max-w-[85rem] mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-24">
       {/* Hero Header */}
       <div className="text-center max-w-4xl mx-auto mb-20 space-y-8">
         <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-slate-900 tracking-tighter leading-[1.1] drop-shadow-sm">
@@ -82,7 +82,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onNavigate }) => {
           <button
             key={feature.id}
             onClick={() => onNavigate(feature.id as any)}
-            className={`relative flex flex-col items-start text-left p-8 md:p-10 rounded-[2.5rem] border transition-all duration-300 group shadow-sm hover:-translate-y-2 ${feature.bg} ${feature.border} ${feature.shadowHover}`}
+            className={`relative flex flex-col items-start text-left p-6 md:p-10 rounded-[2.5rem] border transition-all duration-300 group shadow-sm hover:-translate-y-2 ${feature.bg} ${feature.border} ${feature.shadowHover}`}
           >
             <div className={`p-4 rounded-[1.25rem] inline-flex mb-8 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3 ${feature.iconBg} ${feature.color}`}>
               {feature.icon}
@@ -93,7 +93,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onNavigate }) => {
               {feature.description}
             </p>
 
-            <div className={`flex items-center gap-2 font-bold transition-all duration-300 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 ${feature.color}`}>
+            <div className={`flex items-center gap-2 font-bold transition-all duration-300 opacity-100 translate-x-0 md:opacity-0 md:-translate-x-4 md:group-hover:opacity-100 md:group-hover:translate-x-0 ${feature.color}`}>
               <span>Acessar Módulo</span>
               <ArrowRight size={18} strokeWidth={3} />
             </div>

@@ -17,7 +17,8 @@ import {
   TrendingDown,
   Calendar,
   X,
-  ArrowDownUp
+  ArrowDownUp,
+  SlidersHorizontal
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { storage } from '../lib/storage';
@@ -34,6 +35,7 @@ export const QuotesDashboard: React.FC<QuotesDashboardProps> = ({ onEdit }) => {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterPeriod, setFilterPeriod] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'highest_value' | 'lowest_value' | 'highest_margin'>('newest');
+  const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
 
   useEffect(() => {
     setBudgets(storage.getBudgets());
@@ -168,6 +170,14 @@ export const QuotesDashboard: React.FC<QuotesDashboardProps> = ({ onEdit }) => {
           <h2 className="text-3xl font-black text-slate-900 tracking-tight">Meus Orçamentos</h2>
           <p className="text-[15px] text-slate-500 font-medium mt-1">Gerencie, acompanhe e exporte seu histórico completo.</p>
         </div>
+        
+        {/* Mobile Filter Toggle */}
+        <button 
+          onClick={() => setIsFilterDrawerOpen(true)}
+          className="lg:hidden w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-bold text-sm transition-all shadow-sm"
+        >
+          <SlidersHorizontal size={18} /> Filtros e Busca {activeFiltersCount > 0 && <span className="bg-emerald-500 text-white px-2 py-0.5 rounded-full text-[10px] ml-1">{activeFiltersCount}</span>}
+        </button>
       </div>
       
       {/* Financial Summary */}
@@ -212,78 +222,96 @@ export const QuotesDashboard: React.FC<QuotesDashboardProps> = ({ onEdit }) => {
         </div>
       </div>
 
-      {/* Futuristic Filter Bar */}
-      <div className="bg-white p-4 rounded-3xl border border-slate-200/60 shadow-sm flex flex-col gap-4 relative z-10">
-        <div className="relative">
-          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input 
-            type="text" 
-            placeholder="Buscar por cliente, ID ou valor contido..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-4 py-3.5 bg-slate-50/50 hover:bg-slate-50 border border-transparent hover:border-slate-200 focus:border-slate-200 rounded-2xl text-[15px] font-medium focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all placeholder:text-slate-400"
-          />
-        </div>
-
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="flex items-center gap-3 flex-wrap">
-            {/* Period Chips */}
-            <div className="flex items-center bg-slate-100/50 p-1 rounded-2xl border border-slate-200/50">
-              <Chip label="Todo período" active={filterPeriod === 'all'} onClick={() => setFilterPeriod('all')} />
-              <Chip label="Hoje" active={filterPeriod === 'today'} onClick={() => setFilterPeriod('today')} />
-              <Chip label="Últimos 7 dias" active={filterPeriod === 'week'} onClick={() => setFilterPeriod('week')} />
-              <Chip label="Últimos 30 dias" active={filterPeriod === 'month'} onClick={() => setFilterPeriod('month')} />
-            </div>
-
-            <div className="h-6 w-px bg-slate-200 hidden lg:block" />
-
-            {/* Status Select */}
-            <select 
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2 bg-slate-100/50 border border-slate-200/50 rounded-xl text-sm font-semibold text-slate-600 focus:ring-4 focus:ring-emerald-500/10 outline-none appearance-none cursor-pointer transition-all hover:bg-slate-100"
-            >
-              <option value="all">Todos os Status</option>
-              <option value="draft">Somente Rascunhos</option>
-              <option value="sent">Somente Enviados</option>
-              <option value="approved">Somente Aprovados</option>
-              <option value="lost">Somente Perdidos</option>
-            </select>
-
-            {/* Sort Dropdown */}
-            <div className="flex items-center gap-2 bg-slate-100/50 border border-slate-200/50 rounded-xl px-2 transition-all hover:bg-slate-100">
-              <ArrowDownUp size={16} className="text-slate-400 ml-2" />
-              <select 
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                className="py-2 pr-2 bg-transparent text-sm font-semibold text-slate-600 outline-none appearance-none cursor-pointer"
-              >
-                <option value="newest">Mais recentes</option>
-                <option value="highest_value">Maior Valor</option>
-                <option value="lowest_value">Menor Valor</option>
-                <option value="highest_margin">Maior Margem</option>
-              </select>
-            </div>
+      {/* Filter Bar (Desktop Inline, Mobile Drawer) */}
+      <div className={`fixed inset-0 z-50 flex flex-col justify-end lg:static lg:block lg:z-auto transition-all ${isFilterDrawerOpen ? 'visible bg-slate-900/40 backdrop-blur-sm' : 'invisible lg:visible'}`}>
+        
+        {/* Mobile close overlay */}
+        <div className="absolute inset-0 lg:hidden" onClick={() => setIsFilterDrawerOpen(false)} />
+        
+        <div className={`bg-white p-6 lg:p-4 rounded-t-3xl lg:rounded-3xl border-t lg:border border-slate-200/60 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] lg:shadow-sm flex flex-col gap-6 lg:gap-4 relative z-10 transition-transform duration-300 ${isFilterDrawerOpen ? 'translate-y-0' : 'translate-y-full lg:translate-y-0 w-full'}`}>
+          <div className="flex items-center justify-between lg:hidden mb-2">
+            <h3 className="font-black text-slate-800 text-lg flex items-center gap-2"><SlidersHorizontal size={20} /> Filtros</h3>
+            <button onClick={() => setIsFilterDrawerOpen(false)} className="p-2 bg-slate-100 rounded-xl text-slate-500"><X size={20} /></button>
           </div>
 
-          <div className="flex items-center gap-4">
-            {activeFiltersCount > 0 && (
-              <button 
-                onClick={clearFilters}
-                className="text-xs font-bold text-slate-400 hover:text-slate-700 flex items-center gap-1.5 transition-colors"
-                title="Limpar todos os filtros da busca"
+          <div className="relative">
+            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input 
+              type="text" 
+              placeholder="Buscar por cliente, ID ou valor..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-4 py-3.5 md:py-3 bg-slate-50/50 hover:bg-slate-50 border border-slate-200 focus:border-emerald-300 rounded-2xl text-[15px] font-medium focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all placeholder:text-slate-400"
+            />
+          </div>
+
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 lg:gap-4">
+            <div className="flex items-start lg:items-center gap-3 flex-col lg:flex-row flex-wrap">
+              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest lg:hidden">Período</span>
+              {/* Period Chips */}
+              <div className="flex items-center flex-wrap gap-2 lg:bg-slate-100/50 lg:p-1 lg:rounded-2xl lg:border border-slate-200/50 w-full lg:w-auto">
+                <Chip label="Todo período" active={filterPeriod === 'all'} onClick={() => setFilterPeriod('all')} />
+                <Chip label="Hoje" active={filterPeriod === 'today'} onClick={() => setFilterPeriod('today')} />
+                <Chip label="Últimos 7 dias" active={filterPeriod === 'week'} onClick={() => setFilterPeriod('week')} />
+                <Chip label="Últimos 30 dias" active={filterPeriod === 'month'} onClick={() => setFilterPeriod('month')} />
+              </div>
+
+              <div className="h-6 w-px bg-slate-200 hidden lg:block" />
+
+              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest lg:hidden mt-2">Status do Orçamento</span>
+              {/* Status Select */}
+              <select 
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="w-full lg:w-auto px-4 py-3 lg:py-2 bg-slate-50 lg:bg-slate-100/50 border border-slate-200/80 rounded-xl text-[14px] lg:text-sm font-semibold text-slate-600 focus:ring-4 focus:ring-emerald-500/10 outline-none appearance-none cursor-pointer transition-all hover:bg-slate-100"
               >
-                <X size={14}/> Limpar <span className="hidden sm:inline">({activeFiltersCount})</span>
+                <option value="all">Todos os Status</option>
+                <option value="draft">Somente Rascunhos</option>
+                <option value="sent">Somente Enviados</option>
+                <option value="approved">Somente Aprovados</option>
+                <option value="lost">Somente Perdidos</option>
+              </select>
+
+              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest lg:hidden mt-2">Ordenação</span>
+              {/* Sort Dropdown */}
+              <div className="w-full lg:w-auto flex items-center gap-2 bg-slate-50 lg:bg-slate-100/50 border border-slate-200/80 rounded-xl px-2 transition-all hover:bg-slate-100">
+                <ArrowDownUp size={16} className="text-slate-400 ml-2 shrink-0" />
+                <select 
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="w-full py-3 lg:py-2 pr-2 bg-transparent text-[14px] lg:text-sm font-semibold text-slate-600 outline-none appearance-none cursor-pointer"
+                >
+                  <option value="newest">Mais recentes</option>
+                  <option value="highest_value">Maior Valor</option>
+                  <option value="lowest_value">Menor Valor</option>
+                  <option value="highest_margin">Maior Margem</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 mt-2 lg:mt-0 pt-4 lg:pt-0 border-t lg:border-0 border-slate-100">
+              {activeFiltersCount > 0 && (
+                <button 
+                  onClick={clearFilters}
+                  className="w-full sm:w-auto justify-center py-3 lg:py-0 text-sm lg:text-xs font-bold text-slate-400 hover:text-slate-700 flex items-center gap-1.5 transition-colors bg-slate-50 lg:bg-transparent rounded-xl"
+                  title="Limpar todos os filtros da busca"
+                >
+                  <X size={16}/> Limpar <span className="hidden sm:inline">({activeFiltersCount})</span>
+                </button>
+              )}
+              <button
+                onClick={exportToCsv}
+                disabled={filteredBudgets.length === 0}
+                className="w-full sm:w-auto px-5 py-3 lg:py-2.5 bg-slate-900 justify-center text-white rounded-xl text-[14px] lg:text-[13px] font-semibold flex items-center gap-2.5 hover:bg-emerald-600 hover:shadow-lg hover:shadow-emerald-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed group shrink-0"
+              >
+                <Download size={18} className="group-hover:-translate-y-0.5 transition-transform" />
+                <span>Exportar XLS</span>
               </button>
-            )}
-            <button
-              onClick={exportToCsv}
-              disabled={filteredBudgets.length === 0}
-              className="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-[13px] font-semibold flex items-center gap-2.5 hover:bg-emerald-600 hover:shadow-lg hover:shadow-emerald-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
-            >
-              <Download size={16} className="group-hover:-translate-y-0.5 transition-transform" />
-              <span>Exportar XLS</span>
-            </button>
+              
+              <button onClick={() => setIsFilterDrawerOpen(false)} className="lg:hidden w-full py-4 mt-2 bg-emerald-600 text-white rounded-xl font-black text-sm uppercase tracking-widest shadow-lg shadow-emerald-500/20">
+                 Ver Resultados
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -299,12 +327,12 @@ export const QuotesDashboard: React.FC<QuotesDashboardProps> = ({ onEdit }) => {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.2 }}
-              className="bg-white rounded-2xl border border-slate-200/60 p-5 hover:border-slate-300 hover:shadow-xl hover:shadow-slate-200/20 transition-all group flex flex-col md:flex-row md:items-center justify-between gap-5 relative overflow-hidden"
+              className="bg-white rounded-2xl border border-slate-200/60 p-4 md:p-5 hover:border-slate-300 hover:shadow-xl hover:shadow-slate-200/20 transition-all group flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-5 relative overflow-hidden"
             >
               {/* Subtle accent bar matching status color if desired, optional */}
-              <div className="flex items-center gap-5">
-                <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 shrink-0 group-hover:scale-105 transition-transform duration-300">
-                  <FileText size={24} strokeWidth={1.5} />
+              <div className="flex items-start md:items-center gap-3 md:gap-5">
+                <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 shrink-0 group-hover:scale-105 transition-transform duration-300">
+                  <FileText size={20} className="md:w-6 md:h-6" strokeWidth={1.5} />
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2.5 tracking-tight">

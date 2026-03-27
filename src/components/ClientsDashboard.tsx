@@ -135,34 +135,34 @@ export const ClientsDashboard: React.FC = () => {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.2 }}
-                className="bg-white rounded-[2rem] border border-slate-200/60 p-8 hover:shadow-2xl hover:shadow-indigo-500/5 hover:-translate-y-1 hover:border-indigo-200/50 transition-all duration-300 group relative overflow-hidden"
+                className="bg-white rounded-[2rem] border border-slate-200/60 p-6 md:p-8 hover:shadow-2xl hover:shadow-indigo-500/5 hover:-translate-y-1 hover:border-indigo-200/50 transition-all duration-300 group relative overflow-hidden"
               >
                 {/* Decorative Accent */}
                 <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-indigo-500/10 pointer-events-none"></div>
 
-                <div className="absolute top-0 right-0 p-5 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                <div className="absolute top-0 right-0 p-4 md:p-5 flex gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-all duration-300 bg-white/80 md:bg-transparent backdrop-blur-md md:backdrop-blur-none rounded-bl-3xl border-b border-l border-slate-100 md:border-transparent z-20">
                   <button 
                     onClick={() => openModal(client)}
-                    className="p-2.5 bg-slate-50 border border-slate-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 rounded-xl transition-all shadow-sm"
+                    className="p-3 md:p-2.5 bg-slate-50 border border-slate-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 rounded-xl transition-all shadow-sm"
                     title="Editar Cliente"
                   >
-                    <Pencil size={15} strokeWidth={2.5}/>
+                    <Pencil size={18} className="md:w-4 md:h-4" strokeWidth={2.5}/>
                   </button>
                   <button 
                     onClick={() => handleDelete(client.id)}
-                    className="p-2.5 bg-slate-50 border border-slate-100 text-slate-400 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 rounded-xl transition-all shadow-sm"
+                    className="p-3 md:p-2.5 bg-slate-50 border border-slate-100 text-slate-400 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 rounded-xl transition-all shadow-sm"
                     title="Excluir Cliente"
                   >
-                    <Trash2 size={15} strokeWidth={2.5} />
+                    <Trash2 size={18} className="md:w-4 md:h-4" strokeWidth={2.5} />
                   </button>
                 </div>
 
-                <div className="space-y-6 relative z-10">
-                  <div className="flex items-center gap-5">
+                <div className="space-y-6 relative z-10 pt-8 md:pt-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5">
                     <div className="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center font-black text-2xl shadow-inner shrink-0 group-hover:scale-105 transition-transform duration-300">
                       {client.name.charAt(0).toUpperCase()}
                     </div>
-                    <div className="pr-12">
+                    <div className="pr-0 sm:pr-12">
                       <h3 className="text-xl font-bold text-slate-900 tracking-tight leading-tight truncate" title={client.name}>{client.name}</h3>
                       <p className="text-[13px] text-slate-500 font-medium flex items-center gap-1.5 mt-1 truncate">
                         <Building2 size={14} className="text-slate-400 shrink-0" /> <span className="truncate">{client.company || 'Pessoa Física'}</span>

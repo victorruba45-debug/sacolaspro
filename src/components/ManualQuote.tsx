@@ -155,7 +155,7 @@ const ItemCard: React.FC<ItemCardProps> = ({
       exit={{ opacity: 0, scale: 0.97 }}
       className="bg-white rounded-[2rem] border border-slate-200/80 overflow-hidden shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 group"
     >
-      <div className="flex items-center justify-between px-6 py-4 bg-slate-50/80 border-b border-slate-100/80">
+      <div className="flex items-center justify-between px-4 md:px-6 py-4 bg-slate-50/80 border-b border-slate-100/80">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-black text-sm shadow-inner shrink-0 group-hover:scale-105 transition-transform">
             {index + 1}
@@ -214,7 +214,7 @@ const ItemCard: React.FC<ItemCardProps> = ({
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <div className="p-6 md:p-8 space-y-6">
+            <div className="p-4 md:p-8 space-y-5 md:space-y-6">
               <div className="space-y-2">
                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">
                   Nome / Descrição do Produto *
@@ -243,7 +243,7 @@ const ItemCard: React.FC<ItemCardProps> = ({
               </div>
 
               {item.type === 'manual' && (
-                <div className="bg-slate-50/50 border border-slate-100 rounded-3xl p-6 space-y-6">
+                <div className="bg-slate-50/50 border border-slate-100 rounded-3xl p-4 md:p-6 space-y-5 md:space-y-6">
                   <div className="space-y-3">
                     <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Tamanho da Embalagem</label>
                     <div className="flex flex-wrap gap-2">
@@ -611,7 +611,7 @@ export const ManualQuote: React.FC<ManualQuoteProps> = ({
              <p className="text-[15px] font-medium text-slate-500">Preencha os dados e adicione os itens para gerar o orçamento.</p>
           </div>
 
-          <section className="bg-white rounded-[2.5rem] border border-slate-200 p-8 space-y-6 shadow-sm relative overflow-hidden group">
+          <section className="bg-white rounded-[2.5rem] border border-slate-200 p-5 md:p-8 space-y-5 md:space-y-6 shadow-sm relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-32 h-32 bg-slate-500/5 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-slate-500/10 pointer-events-none"></div>
             <div className="flex items-center gap-4 pb-2 border-b border-slate-100">
               <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-500 border border-slate-200 shadow-inner">
