@@ -301,9 +301,12 @@ const ItemCard: React.FC<ItemCardProps> = ({
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">QTD</label>
                   <input
                     type="number"
-                    min={1}
-                    value={item.quantity}
-                    onChange={e => onChange(item.id, { quantity: Math.max(1, Number(e.target.value)) })}
+                    min={0}
+                    value={item.quantity || ''}
+                    onChange={e => {
+                      const val = e.target.value;
+                      onChange(item.id, { quantity: val === '' ? 0 : Math.max(0, Number(val)) });
+                    }}
                     className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-bold"
                   />
                 </div>

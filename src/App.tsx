@@ -40,6 +40,7 @@ import { Auth } from './components/Auth';
 import { ManualQuote } from './components/ManualQuote';
 import { QuotesDashboard } from './components/QuotesDashboard';
 import { ClientsDashboard } from './components/ClientsDashboard';
+import { HomeDashboard } from './components/HomeDashboard';
 import { Session } from '@supabase/supabase-js';
 import { storage } from './lib/storage';
 import {
@@ -414,7 +415,7 @@ const compressImage = (file: File, maxWidth = 600, quality = 0.6): Promise<strin
 
 export default function App() {
   // Navigation State
-  const [view, setView] = useState<'calculator' | 'templates' | 'manual' | 'quotes' | 'clients'>('calculator');
+  const [view, setView] = useState<'home' | 'calculator' | 'templates' | 'manual' | 'quotes' | 'clients'>('home');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Unified Budget State
@@ -1623,7 +1624,7 @@ Gerado por SacolaPro
       {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView('home')}>
             <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white">
               <Package size={20} />
             </div>
@@ -1794,7 +1795,11 @@ Gerado por SacolaPro
         </div>
 
         <AnimatePresence mode="wait">
-          {view === 'quotes' ? (
+          {view === 'home' ? (
+            <motion.div key="home" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.05 }}>
+              <HomeDashboard onNavigate={(v) => setView(v)} />
+            </motion.div>
+          ) : view === 'quotes' ? (
             <motion.div key="quotes" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
               <QuotesDashboard
                 onEdit={(budget) => { setActiveBudget(budget); setView('manual'); }}
