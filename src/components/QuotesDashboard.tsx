@@ -208,13 +208,35 @@ export const QuotesDashboard: React.FC<QuotesDashboardProps> = ({ onEdit }) => {
           <p className="text-[15px] text-slate-500 font-medium mt-1">Gerencie, acompanhe e exporte seu histórico completo.</p>
         </div>
         
-        {/* Mobile Filter Toggle */}
-        <button 
-          onClick={() => setIsFilterDrawerOpen(true)}
-          className="lg:hidden w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-bold text-sm transition-all shadow-sm"
-        >
-          <SlidersHorizontal size={18} /> Filtros e Busca {activeFiltersCount > 0 && <span className="bg-emerald-500 text-white px-2 py-0.5 rounded-full text-[10px] ml-1">{activeFiltersCount}</span>}
-        </button>
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+          {/* Mobile Filter Toggle */}
+          <button 
+            onClick={() => setIsFilterDrawerOpen(true)}
+            className="lg:hidden w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-bold text-sm transition-all shadow-sm"
+          >
+            <SlidersHorizontal size={18} /> Filtros e Busca {activeFiltersCount > 0 && <span className="bg-emerald-500 text-white px-2 py-0.5 rounded-full text-[10px] ml-1">{activeFiltersCount}</span>}
+          </button>
+
+          {/* Mobile Export Buttons (Visible ONLY on mobile here) */}
+          <div className="flex lg:hidden w-full gap-2">
+            <button
+              onClick={exportToPdf}
+              disabled={filteredBudgets.length === 0}
+              className="flex-1 px-4 py-3 bg-emerald-600 justify-center text-white rounded-xl text-[14px] font-semibold flex items-center gap-2 hover:bg-emerald-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed group mr-0"
+              title="Exportar para PDF"
+            >
+              <Download size={18} className="group-hover:-translate-y-0.5 transition-transform" /> PDF
+            </button>
+            <button
+              onClick={exportToCsv}
+              disabled={filteredBudgets.length === 0}
+              className="flex-1 px-4 py-3 bg-slate-900 justify-center text-white rounded-xl text-[14px] font-semibold flex items-center gap-2 hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+              title="Exportar para Excel (CSV)"
+            >
+              <Download size={18} className="group-hover:-translate-y-0.5 transition-transform" /> Excel
+            </button>
+          </div>
+        </div>
       </div>
       
       {/* Financial Summary */}
@@ -336,11 +358,11 @@ export const QuotesDashboard: React.FC<QuotesDashboardProps> = ({ onEdit }) => {
                   <X size={16}/> Limpar <span className="hidden sm:inline">({activeFiltersCount})</span>
                 </button>
               )}
-              <div className="flex w-full sm:w-auto gap-2">
+              <div className="hidden lg:flex w-full sm:w-auto gap-2">
                 <button
                   onClick={exportToPdf}
                   disabled={filteredBudgets.length === 0}
-                  className="w-full sm:w-auto px-4 py-3 lg:py-2.5 bg-emerald-600 justify-center text-white rounded-xl text-[14px] lg:text-[13px] font-semibold flex items-center gap-2 hover:bg-emerald-700 hover:shadow-lg hover:shadow-emerald-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed group shrink-0"
+                  className="w-full sm:w-auto px-4 py-2.5 bg-emerald-600 justify-center text-white rounded-xl text-[13px] font-semibold flex items-center gap-2 hover:bg-emerald-700 hover:shadow-lg hover:shadow-emerald-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed group shrink-0"
                   title="Exportar para PDF"
                 >
                   <Download size={18} className="group-hover:-translate-y-0.5 transition-transform" />
@@ -349,7 +371,7 @@ export const QuotesDashboard: React.FC<QuotesDashboardProps> = ({ onEdit }) => {
                 <button
                   onClick={exportToCsv}
                   disabled={filteredBudgets.length === 0}
-                  className="w-full sm:w-auto px-4 py-3 lg:py-2.5 bg-slate-900 justify-center text-white rounded-xl text-[14px] lg:text-[13px] font-semibold flex items-center gap-2 hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-900/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed group shrink-0"
+                  className="w-full sm:w-auto px-4 py-2.5 bg-slate-900 justify-center text-white rounded-xl text-[13px] font-semibold flex items-center gap-2 hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-900/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed group shrink-0"
                   title="Exportar para Excel (CSV)"
                 >
                   <Download size={18} className="group-hover:-translate-y-0.5 transition-transform" />
