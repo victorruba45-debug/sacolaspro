@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Plus, Trash2, Copy, Check, FileText, ChevronDown, ChevronUp,
   Package, TrendingUp, AlertCircle, ClipboardList, Building2, Hash, X,
-  Calculator, User, Save, DollarSign
+  Calculator, User, Save, DollarSign, UserPlus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { jsPDF } from 'jspdf';
@@ -359,7 +359,7 @@ export const ManualQuote: React.FC<ManualQuoteProps> = ({
 }) => {
   const [budget, setBudget] = useState<Budget>(() => activeBudget || {
     id: crypto.randomUUID(),
-    origin: 'manual',
+    clientId: '',
     status: 'draft',
     date: new Date().toISOString(),
     items: [DEFAULT_ITEM()],
@@ -373,6 +373,14 @@ export const ManualQuote: React.FC<ManualQuoteProps> = ({
 
   const [clients, setClients] = useState<Client[]>([]);
   const [copied, setCopied] = useState(false);
+  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+  const [newClientData, setNewClientData] = useState({
+    name: '',
+    company: '',
+    phone: '',
+    email: '',
+    notes: ''
+  });
 
   useEffect(() => {
     setClients(storage.getClients());
@@ -606,6 +614,7 @@ export const ManualQuote: React.FC<ManualQuoteProps> = ({
   };
 
   return (
+    <>
     <div className="max-w-[85rem] mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 pb-24">
       <DataLists />
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
@@ -625,16 +634,25 @@ export const ManualQuote: React.FC<ManualQuoteProps> = ({
               <h2 className="font-bold text-slate-900 text-lg">Informações Gerais</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 flex flex-col">
                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Selecionar Cliente</label>
-                <select 
-                  value={budget.clientId || ''}
-                  onChange={e => setBudget({ ...budget, clientId: e.target.value })}
-                  className="w-full px-4 py-3.5 rounded-2xl border border-slate-200/80 bg-slate-50/50 hover:bg-white text-[15px] font-semibold text-slate-700 focus:border-emerald-300 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all cursor-pointer"
-                >
-                  <option value="">Nenhum cliente selecionado</option>
-                  {clients.map(c => <option key={c.id} value={c.id}>{c.name} ({c.company})</option>)}
-                </select>
+                <div className="flex gap-2">
+                  <select 
+                    value={budget.clientId || ''}
+                    onChange={e => setBudget({ ...budget, clientId: e.target.value })}
+                    className="flex-1 px-4 py-3.5 rounded-2xl border border-slate-200/80 bg-slate-50/50 hover:bg-white text-[15px] font-semibold text-slate-700 focus:border-emerald-300 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all cursor-pointer"
+                  >
+                    <option value="">Nenhum cliente selecionado</option>
+                    {clients.map(c => <option key={c.id} value={c.id}>{c.name} ({c.company})</option>)}
+                  </select>
+                  <button 
+                    onClick={() => setIsClientModalOpen(true)}
+                    className="p-3.5 bg-emerald-50 border border-emerald-100 text-emerald-600 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
+                    title="Novo Cliente"
+                  >
+                    <Plus size={20} strokeWidth={2.5} />
+                  </button>
+                </div>
               </div>
               <div className="space-y-1.5">
                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Status Comercial</label>
@@ -783,5 +801,115 @@ export const ManualQuote: React.FC<ManualQuoteProps> = ({
         </div>
       </div>
     </div>
+    
+    {/* New Client Modal */}
+    <AnimatePresence>
+      {isClientModalOpen && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsClientModalOpen(false)}
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className="relative w-full max-w-xl bg-white rounded-[2.5rem] shadow-2xl border border-white/20 overflow-hidden flex flex-col max-h-[90vh]"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="px-8 py-6 border-b border-slate-100 bg-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-emerald-50 border border-emerald-100/50 text-emerald-600 rounded-2xl flex items-center justify-center shadow-inner">
+                  <UserPlus size={22} strokeWidth={2.5} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 tracking-tight text-xl">Novo Cliente</h3>
+                  <p className="text-[12px] text-slate-500 font-medium">Cadastre rapidamente para vincular ao orçamento</p>
+                </div>
+              </div>
+              <button onClick={() => setIsClientModalOpen(false)} className="p-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-400 border border-slate-100 hover:text-slate-700 transition-all">
+                <X size={18} strokeWidth={2.5}/>
+              </button>
+            </div>
+
+            <div className="overflow-y-auto p-8 custom-scrollbar">
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="md:col-span-2 space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Nome Completo *</label>
+                    <input 
+                      required
+                      type="text" 
+                      value={newClientData.name}
+                      onChange={e => setNewClientData({ ...newClientData, name: e.target.value })}
+                      className="w-full px-4 py-3.5 bg-slate-50/50 border border-slate-200 rounded-2xl focus:border-emerald-300 focus:bg-white focus:ring-4 focus:ring-emerald-500/10 outline-none text-[15px] font-medium transition-all"
+                      placeholder="Ex: João Silva"
+                    />
+                  </div>
+                  <div className="md:col-span-2 space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Empresa</label>
+                    <input 
+                      type="text" 
+                      value={newClientData.company}
+                      onChange={e => setNewClientData({ ...newClientData, company: e.target.value })}
+                      className="w-full px-4 py-3.5 bg-slate-50/50 border border-slate-200 rounded-2xl focus:border-emerald-300 focus:bg-white focus:ring-4 focus:ring-emerald-500/10 outline-none text-[15px] font-medium transition-all"
+                      placeholder="Ex: Sacolas LTDA"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Telefone / WhatsApp</label>
+                    <input 
+                      type="text" 
+                      value={newClientData.phone}
+                      onChange={e => setNewClientData({ ...newClientData, phone: e.target.value })}
+                      className="w-full px-4 py-3.5 bg-slate-50/50 border border-slate-200 rounded-2xl focus:border-emerald-300 focus:bg-white focus:ring-4 focus:ring-emerald-500/10 outline-none text-[15px] font-medium transition-all"
+                      placeholder="(00) 00000-0000"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Email</label>
+                    <input 
+                      type="email" 
+                      value={newClientData.email}
+                      onChange={e => setNewClientData({ ...newClientData, email: e.target.value })}
+                      className="w-full px-4 py-3.5 bg-slate-50/50 border border-slate-200 rounded-2xl focus:border-emerald-300 focus:bg-white focus:ring-4 focus:ring-emerald-500/10 outline-none text-[15px] font-medium transition-all"
+                      placeholder="contato@empresa.com"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-8 py-6 border-t border-slate-100 bg-slate-50 shrink-0">
+              <button 
+                onClick={() => {
+                  if (!newClientData.name) return;
+                  const client: Client = {
+                    ...newClientData,
+                    id: crypto.randomUUID(),
+                    totalBudgets: 0,
+                    totalValue: 0,
+                    lastBudget: ''
+                  };
+                  storage.saveClient(client);
+                  const updatedClients = storage.getClients();
+                  setClients(updatedClients);
+                  setBudget({ ...budget, clientId: client.id });
+                  setIsClientModalOpen(false);
+                  setNewClientData({ name: '', company: '', phone: '', email: '', notes: '' });
+                }}
+                className="w-full py-4 bg-slate-900 text-white rounded-2xl font-semibold text-[15px] hover:bg-emerald-600 hover:shadow-lg hover:shadow-emerald-500/20 transition-all duration-300"
+              >
+                Cadastrar e Selecionar
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+    </>
   );
 };

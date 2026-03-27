@@ -19,17 +19,6 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onNavigate }) => {
       shadowHover: 'hover:shadow-2xl hover:shadow-emerald-500/10 hover:border-emerald-300/50'
     },
     {
-      id: 'templates',
-      title: 'Modelos Prontos',
-      description: 'Acesse modelos de orçamento pré-configurados e agilize o seu atendimento.',
-      icon: <Package size={28} strokeWidth={2} />,
-      color: 'text-amber-600',
-      bg: 'bg-white',
-      border: 'border-slate-200/60',
-      iconBg: 'bg-amber-50',
-      shadowHover: 'hover:shadow-2xl hover:shadow-amber-500/10 hover:border-amber-300/50'
-    },
-    {
       id: 'manual',
       title: 'Orçamento Manual',
       description: 'Editor de orçamento livre para itens customizados ou componentes do catálogo.',
@@ -61,6 +50,17 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onNavigate }) => {
       border: 'border-slate-200/60',
       iconBg: 'bg-rose-50',
       shadowHover: 'hover:shadow-2xl hover:shadow-rose-500/10 hover:border-rose-300/50'
+    },
+    {
+      id: 'templates',
+      title: 'Modelos Prontos',
+      description: 'Acesse modelos de orçamento pré-configurados e agilize o seu atendimento.',
+      icon: <Package size={28} strokeWidth={2} />,
+      color: 'text-amber-600',
+      bg: 'bg-white',
+      border: 'border-slate-200/60',
+      iconBg: 'bg-amber-50',
+      shadowHover: 'hover:shadow-2xl hover:shadow-amber-500/10 hover:border-amber-300/50'
     }
   ] as const;
 

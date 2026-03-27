@@ -418,6 +418,10 @@ export default function App() {
   const [view, setView] = useState<'home' | 'calculator' | 'templates' | 'manual' | 'quotes' | 'clients'>('home');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [view]);
+
   // Unified Budget State
   const [activeBudget, setActiveBudget] = useState<Budget | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
@@ -1401,7 +1405,6 @@ Gerado por SacolaPro
                         <p className="text-sm font-black text-slate-700">{previewModel.config.width}x{previewModel.config.height}x{previewModel.config.side} cm</p>
                       </div>
                       <div className="bg-slate-50 p-3 rounded-2xl">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Quantidade</p>
                         <p className="text-sm font-black text-slate-700">{previewModel.config.quantity} un</p>
                       </div>
                       <div className="bg-slate-50 p-3 rounded-2xl">
@@ -1659,20 +1662,12 @@ Gerado por SacolaPro
               Calculadora
             </button>
             <button
-              onClick={() => setView('templates')}
-              className={`px-4 py-1.5 rounded-xl text-[13px] font-semibold transition-all duration-300 ${view === 'templates' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/50'
-                }`}
-            >
-              Modelos
-            </button>
-            <button
               onClick={() => setView('manual')}
               className={`px-4 py-1.5 rounded-xl text-[13px] font-semibold transition-all duration-300 ${view === 'manual' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/50'
                 }`}
             >
               Orç. Manual
             </button>
-            <div className="w-px h-4 bg-slate-200 mx-1" />
             <button
               onClick={() => setView('quotes')}
               className={`px-4 py-1.5 rounded-xl text-[13px] font-semibold transition-all duration-300 ${view === 'quotes' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/50'
@@ -1687,22 +1682,33 @@ Gerado por SacolaPro
             >
               Clientes
             </button>
+            <button
+              onClick={() => setView('templates')}
+              className={`px-4 py-1.5 rounded-xl text-[13px] font-semibold transition-all duration-300 ${view === 'templates' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/50'
+                }`}
+            >
+              Modelos
+            </button>
           </nav>
 
           <div className="flex items-center gap-2">
             <div className="hidden md:flex items-center gap-3">
-              <button
-                onClick={resetConfig}
-                className="p-2.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100/80 rounded-xl transition-all flex items-center gap-2 text-[13px] font-semibold"
-              >
-                <RotateCcw size={16} /> <span>Recomeçar</span>
-              </button>
-              <button
-                onClick={() => setIsAdminOpen(true)}
-                className="p-2.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100/80 rounded-xl transition-all"
-              >
-                <Settings size={18} />
-              </button>
+              {view === 'calculator' && (
+                <>
+                  <button
+                    onClick={resetConfig}
+                    className="p-2.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100/80 rounded-xl transition-all flex items-center gap-2 text-[13px] font-semibold"
+                  >
+                    <RotateCcw size={16} /> <span>Recomeçar</span>
+                  </button>
+                  <button
+                    onClick={() => setIsAdminOpen(true)}
+                    className="p-2.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100/80 rounded-xl transition-all"
+                  >
+                    <Settings size={18} />
+                  </button>
+                </>
+              )}
               <button
                 onClick={handleLogout}
                 className="px-5 py-2.5 bg-slate-900 text-white text-[13px] font-semibold rounded-xl hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-900/10 transition-all duration-300 flex items-center gap-2"
@@ -1740,25 +1746,18 @@ Gerado por SacolaPro
                   Calculadora
                 </button>
                 <button
-                  onClick={() => { setView('templates'); setIsMenuOpen(false); }}
-                  className={`w-full px-6 py-4 rounded-2xl text-sm font-black uppercase tracking-widest text-left transition-all ${view === 'templates' ? 'bg-emerald-50 text-emerald-700 border-l-4 border-emerald-500' : 'text-slate-500'
-                    }`}
-                >
-                  Modelos Prontos
-                </button>
-                <button
                   onClick={() => { setView('manual'); setIsMenuOpen(false); }}
                   className={`w-full px-6 py-4 rounded-2xl text-sm font-black uppercase tracking-widest text-left transition-all ${view === 'manual' ? 'bg-emerald-50 text-emerald-700 border-l-4 border-emerald-500' : 'text-slate-500'
                     }`}
                 >
-                  Orç. Manual
+                  Orçamento Manual
                 </button>
                 <button
                   onClick={() => { setView('quotes'); setIsMenuOpen(false); }}
                   className={`w-full px-6 py-4 rounded-2xl text-sm font-black uppercase tracking-widest text-left transition-all ${view === 'quotes' ? 'bg-emerald-50 text-emerald-700 border-l-4 border-emerald-500' : 'text-slate-500'
                     }`}
                 >
-                  Listar Orçamentos
+                  Meus Orçamentos
                 </button>
                 <button
                   onClick={() => { setView('clients'); setIsMenuOpen(false); }}
@@ -1766,6 +1765,13 @@ Gerado por SacolaPro
                     }`}
                 >
                   Clientes
+                </button>
+                <button
+                  onClick={() => { setView('templates'); setIsMenuOpen(false); }}
+                  className={`w-full px-6 py-4 rounded-2xl text-sm font-black uppercase tracking-widest text-left transition-all ${view === 'templates' ? 'bg-emerald-50 text-emerald-700 border-l-4 border-emerald-500' : 'text-slate-500'
+                    }`}
+                >
+                  Modelos Prontos
                 </button>
                 <div className="h-px bg-slate-100 my-2" />
                 <button
@@ -2449,7 +2455,7 @@ Gerado por SacolaPro
                         >
                           <Plus size={20} /> Adicionar ao Orçamento
                         </button>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-3 hidden">
                           <button
                             onClick={handleCopy}
                             className={`py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${copied
