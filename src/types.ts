@@ -127,4 +127,6 @@ export interface Budget {
   totalCost: number;
   margin: number;
   updatedAt: string;
+  deliveryTime?: string;
+  notes?: string;
 }

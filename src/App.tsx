@@ -1622,48 +1622,48 @@ Gerado por SacolaPro
       </AnimatePresence>
 
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
+      <header className="bg-white/80 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView('home')}>
-            <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white">
-              <Package size={20} />
+          <div className="flex items-center gap-2 cursor-pointer group" onClick={() => setView('home')}>
+            <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-xl flex items-center justify-center text-white shadow-md shadow-emerald-500/20 group-hover:shadow-emerald-500/40 group-hover:scale-105 transition-all duration-300">
+              <Package size={18} strokeWidth={2.5} />
             </div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-800">Sacola<span className="text-emerald-600">Pro</span></h1>
+            <h1 className="text-xl font-bold tracking-tight text-slate-800">Sacola<span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-emerald-400">Pro</span></h1>
           </div>
 
-          <nav className="hidden md:flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+          <nav className="hidden md:flex items-center bg-slate-100/60 p-1.5 rounded-2xl border border-slate-200/60 backdrop-blur-sm">
             <button
               onClick={() => setView('calculator')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${view === 'calculator' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              className={`px-4 py-1.5 rounded-xl text-[13px] font-semibold transition-all duration-300 ${view === 'calculator' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/50'
                 }`}
             >
               Calculadora
             </button>
             <button
               onClick={() => setView('templates')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${view === 'templates' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              className={`px-4 py-1.5 rounded-xl text-[13px] font-semibold transition-all duration-300 ${view === 'templates' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/50'
                 }`}
             >
               Modelos
             </button>
             <button
               onClick={() => setView('manual')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${view === 'manual' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              className={`px-4 py-1.5 rounded-xl text-[13px] font-semibold transition-all duration-300 ${view === 'manual' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/50'
                 }`}
             >
-              Manual
+              Orç. Manual
             </button>
-            <div className="w-px h-4 bg-slate-300 mx-1" />
+            <div className="w-px h-4 bg-slate-200 mx-1" />
             <button
               onClick={() => setView('quotes')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${view === 'quotes' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              className={`px-4 py-1.5 rounded-xl text-[13px] font-semibold transition-all duration-300 ${view === 'quotes' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/50'
                 }`}
             >
               Orçamentos
             </button>
             <button
               onClick={() => setView('clients')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${view === 'clients' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              className={`px-4 py-1.5 rounded-xl text-[13px] font-semibold transition-all duration-300 ${view === 'clients' ? 'bg-white text-slate-900 shadow-sm border border-slate-200/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/50'
                 }`}
             >
               Clientes
@@ -1674,19 +1674,19 @@ Gerado por SacolaPro
             <div className="hidden md:flex items-center gap-3">
               <button
                 onClick={resetConfig}
-                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all flex items-center gap-2 text-sm font-bold"
+                className="p-2.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100/80 rounded-xl transition-all flex items-center gap-2 text-[13px] font-semibold"
               >
-                <RotateCcw size={18} /> <span>Recomeçar</span>
+                <RotateCcw size={16} /> <span>Recomeçar</span>
               </button>
               <button
                 onClick={() => setIsAdminOpen(true)}
-                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all"
+                className="p-2.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100/80 rounded-xl transition-all"
               >
                 <Settings size={18} />
               </button>
               <button
                 onClick={handleLogout}
-                className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition-all flex items-center gap-2"
+                className="px-5 py-2.5 bg-slate-900 text-white text-[13px] font-semibold rounded-xl hover:bg-slate-800 hover:shadow-lg hover:shadow-slate-900/10 transition-all duration-300 flex items-center gap-2"
                 title="Sair do Sistema"
               >
                 <X size={14} /> Sair

@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Users, 
-  Plus, 
   Search, 
   Pencil, 
   Trash2, 
   Phone, 
   Mail, 
   Building2, 
-  MessageSquare,
   ChevronRight,
-  FileText,
   UserPlus,
   X
 } from 'lucide-react';
@@ -90,29 +87,36 @@ export const ClientsDashboard: React.FC = () => {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-8 max-w-[85rem] mx-auto pb-12">
+      {/* Header Area */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h2 className="text-2xl font-black text-slate-900">Meus Clientes</h2>
-          <p className="text-sm text-slate-500 font-medium">Controle de contatos e histórico de orçamentos</p>
+          <h2 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+            <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 border border-indigo-100/50 shadow-inner">
+              <Users size={24} strokeWidth={2.5} />
+            </div>
+            Meus Clientes
+          </h2>
+          <p className="text-[15px] text-slate-500 font-medium mt-2 max-w-lg">Controle e centralize todos os contatos e mantenha o histórico de orçamentos mapeado com eficiência.</p>
         </div>
         
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <div className="relative w-full sm:w-auto">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input 
               type="text" 
               placeholder="Buscar por nome ou empresa..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 outline-none w-64 transition-all"
+              className="w-full sm:w-72 pl-12 pr-4 py-3 bg-white border border-slate-200/60 shadow-sm rounded-2xl text-[15px] font-medium focus:border-indigo-300 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all placeholder:text-slate-400"
             />
           </div>
           <button 
             onClick={() => openModal()}
-            className="px-4 py-2 bg-slate-900 text-white rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-slate-800 transition-all shadow-md"
+            className="w-full sm:w-auto px-6 py-3 bg-slate-900 text-white rounded-2xl text-[14px] font-semibold flex items-center justify-center gap-2 hover:bg-indigo-600 hover:shadow-lg hover:shadow-indigo-500/20 transition-all duration-300 group shrink-0"
           >
-            <UserPlus size={18} /> Novo Cliente
+            <UserPlus size={18} className="group-hover:scale-110 transition-transform"/> 
+            <span>Novo Cliente</span>
           </button>
         </div>
       </div>
@@ -121,69 +125,81 @@ export const ClientsDashboard: React.FC = () => {
         <AnimatePresence mode="popLayout">
           {filteredClients.map((client) => {
             const clientBudgets = getClientBudgets(client.id);
+            const totalValue = clientBudgets.reduce((s, b) => s + b.totalValue, 0);
+            
             return (
               <motion.div
                 key={client.id}
                 layout
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                className="bg-white rounded-[2.5rem] border border-slate-200 p-8 hover:shadow-xl transition-all group relative overflow-hidden"
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.2 }}
+                className="bg-white rounded-[2rem] border border-slate-200/60 p-8 hover:shadow-2xl hover:shadow-indigo-500/5 hover:-translate-y-1 hover:border-indigo-200/50 transition-all duration-300 group relative overflow-hidden"
               >
-                <div className="absolute top-0 right-0 p-6 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                {/* Decorative Accent */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl -mr-10 -mt-10 transition-all group-hover:bg-indigo-500/10 pointer-events-none"></div>
+
+                <div className="absolute top-0 right-0 p-5 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300">
                   <button 
                     onClick={() => openModal(client)}
-                    className="p-2 bg-slate-50 text-slate-400 hover:text-slate-900 rounded-full transition-all"
+                    className="p-2.5 bg-slate-50 border border-slate-100 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 rounded-xl transition-all shadow-sm"
+                    title="Editar Cliente"
                   >
-                    <Pencil size={16} />
+                    <Pencil size={15} strokeWidth={2.5}/>
                   </button>
                   <button 
                     onClick={() => handleDelete(client.id)}
-                    className="p-2 bg-rose-50 text-slate-400 hover:text-rose-600 rounded-full transition-all"
+                    className="p-2.5 bg-slate-50 border border-slate-100 text-slate-400 hover:text-rose-600 hover:border-rose-200 hover:bg-rose-50 rounded-xl transition-all shadow-sm"
+                    title="Excluir Cliente"
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={15} strokeWidth={2.5} />
                   </button>
                 </div>
 
-                <div className="space-y-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-black text-xl">
+                <div className="space-y-6 relative z-10">
+                  <div className="flex items-center gap-5">
+                    <div className="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center font-black text-2xl shadow-inner shrink-0 group-hover:scale-105 transition-transform duration-300">
                       {client.name.charAt(0).toUpperCase()}
                     </div>
-                    <div>
-                      <h3 className="text-lg font-black text-slate-900 leading-tight">{client.name}</h3>
-                      <p className="text-sm text-slate-500 font-bold flex items-center gap-1.5 italic">
-                        <Building2 size={12} className="text-slate-400" /> {client.company || 'Pessoa Física'}
+                    <div className="pr-12">
+                      <h3 className="text-xl font-bold text-slate-900 tracking-tight leading-tight truncate" title={client.name}>{client.name}</h3>
+                      <p className="text-[13px] text-slate-500 font-medium flex items-center gap-1.5 mt-1 truncate">
+                        <Building2 size={14} className="text-slate-400 shrink-0" /> <span className="truncate">{client.company || 'Pessoa Física'}</span>
                       </p>
                     </div>
                   </div>
 
                   <div className="space-y-3 pt-2">
                     {client.phone && (
-                      <div className="flex items-center gap-3 text-slate-500">
-                        <Phone size={14} className="text-emerald-500" />
-                        <span className="text-xs font-bold">{client.phone}</span>
+                      <div className="flex items-center gap-3 text-slate-600">
+                        <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-500 flex items-center justify-center shrink-0">
+                          <Phone size={14} strokeWidth={2.5}/>
+                        </div>
+                        <span className="text-[13px] font-semibold">{client.phone}</span>
                       </div>
                     )}
                     {client.email && (
-                      <div className="flex items-center gap-3 text-slate-500">
-                        <Mail size={14} className="text-emerald-500" />
-                        <span className="text-xs font-bold truncate">{client.email}</span>
+                      <div className="flex items-center gap-3 text-slate-600">
+                        <div className="w-7 h-7 rounded-lg bg-sky-50 text-sky-500 flex items-center justify-center shrink-0">
+                          <Mail size={14} strokeWidth={2.5}/>
+                        </div>
+                        <span className="text-[13px] font-semibold truncate" title={client.email}>{client.email}</span>
                       </div>
                     )}
                   </div>
 
                   <div className="h-px bg-slate-100" />
 
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between bg-slate-50/50 rounded-2xl p-4 border border-slate-100/50">
                     <div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Orçamentos</p>
-                      <p className="text-sm font-black text-slate-700">{clientBudgets.length}</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Qtd. Orçamentos</p>
+                      <p className="text-base font-black text-slate-700">{clientBudgets.length}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Valor Total</p>
-                      <p className="text-sm font-black text-emerald-600">
-                        R$ {clientBudgets.reduce((s, b) => s + b.totalValue, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Ganhos Totais</p>
+                      <p className="text-base font-black text-emerald-600">
+                        R$ {totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </p>
                     </div>
                   </div>
@@ -192,6 +208,18 @@ export const ClientsDashboard: React.FC = () => {
             );
           })}
         </AnimatePresence>
+
+        {filteredClients.length === 0 && (
+          <div className="md:col-span-2 lg:col-span-3 py-24 text-center space-y-4 bg-slate-50/50 rounded-[3rem] border-2 border-dashed border-slate-200">
+            <div className="w-20 h-20 bg-white rounded-[2rem] border border-slate-100 flex items-center justify-center text-slate-300 mx-auto shadow-sm">
+              <Users size={36} strokeWidth={1.5} />
+            </div>
+            <div>
+              <p className="text-lg font-bold text-slate-700">Nenhum cliente cadastrado.</p>
+              <p className="text-sm font-medium text-slate-400 mt-1 max-w-sm mx-auto">Sua base de clientes está vazia ou a busca não retornou resultados. Cadastre um novo para começar.</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modal Cadastro/Edição */}
@@ -203,96 +231,99 @@ export const ClientsDashboard: React.FC = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={closeModal}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-md"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl border border-white/20 overflow-hidden"
+              className="relative w-full max-w-xl bg-white rounded-[2.5rem] shadow-2xl border border-white/20 overflow-hidden flex flex-col max-h-[90vh]"
               onClick={e => e.stopPropagation()}
             >
-              <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-emerald-100 text-emerald-600 rounded-xl">
-                    <UserPlus size={20} />
+              <div className="px-8 py-6 border-b border-slate-100 bg-white flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-indigo-50 border border-indigo-100/50 text-indigo-600 rounded-2xl flex items-center justify-center shadow-inner">
+                    <UserPlus size={22} strokeWidth={2.5} />
                   </div>
                   <div>
-                    <h3 className="font-black text-slate-900 uppercase tracking-tight text-sm">
+                    <h3 className="font-bold text-slate-900 tracking-tight text-xl">
                       {editingClient ? 'Editar Cliente' : 'Novo Cliente'}
                     </h3>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Informações de contato</p>
+                    <p className="text-[12px] text-slate-500 font-medium">Preencha as informações de contato do cliente</p>
                   </div>
                 </div>
-                <button onClick={closeModal} className="p-2 hover:bg-slate-200 rounded-xl text-slate-400 transition-all">
-                  <X size={20} />
+                <button onClick={closeModal} className="p-2.5 bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-400 border border-slate-100 hover:text-slate-700 transition-all">
+                  <X size={18} strokeWidth={2.5}/>
                 </button>
               </div>
 
-              <form onSubmit={handleSave} className="p-8 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2 space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome Completo *</label>
-                    <input 
-                      required
-                      type="text" 
-                      value={formData.name}
-                      onChange={e => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-bold"
-                      placeholder="Ex: João Silva"
-                    />
+              <div className="overflow-y-auto p-8 custom-scrollbar">
+                <form id="client-form" onSubmit={handleSave} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="md:col-span-2 space-y-1.5">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Nome Completo *</label>
+                      <input 
+                        required
+                        type="text" 
+                        value={formData.name}
+                        onChange={e => setFormData({ ...formData, name: e.target.value })}
+                        className="w-full px-4 py-3.5 bg-slate-50/50 border border-slate-200 rounded-2xl focus:border-indigo-300 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 outline-none text-[15px] font-medium transition-all"
+                        placeholder="Ex: João Silva"
+                      />
+                    </div>
+                    <div className="md:col-span-2 space-y-1.5">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Empresa</label>
+                      <input 
+                        type="text" 
+                        value={formData.company}
+                        onChange={e => setFormData({ ...formData, company: e.target.value })}
+                        className="w-full px-4 py-3.5 bg-slate-50/50 border border-slate-200 rounded-2xl focus:border-indigo-300 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 outline-none text-[15px] font-medium transition-all"
+                        placeholder="Ex: Sacolas LTDA"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Telefone / WhatsApp</label>
+                      <input 
+                        type="text" 
+                        value={formData.phone}
+                        onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                        className="w-full px-4 py-3.5 bg-slate-50/50 border border-slate-200 rounded-2xl focus:border-indigo-300 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 outline-none text-[15px] font-medium transition-all"
+                        placeholder="(00) 00000-0000"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Email</label>
+                      <input 
+                        type="email" 
+                        value={formData.email}
+                        onChange={e => setFormData({ ...formData, email: e.target.value })}
+                        className="w-full px-4 py-3.5 bg-slate-50/50 border border-slate-200 rounded-2xl focus:border-indigo-300 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 outline-none text-[15px] font-medium transition-all"
+                        placeholder="contato@empresa.com"
+                      />
+                    </div>
+                    <div className="md:col-span-2 space-y-1.5">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Observações</label>
+                      <textarea 
+                        value={formData.notes}
+                        onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                        rows={3}
+                        className="w-full px-4 py-3.5 bg-slate-50/50 border border-slate-200 rounded-2xl focus:border-indigo-300 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 outline-none text-[15px] font-medium transition-all resize-none"
+                        placeholder="Alguma informação adicional..."
+                      />
+                    </div>
                   </div>
-                  <div className="col-span-2 space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Empresa</label>
-                    <input 
-                      type="text" 
-                      value={formData.company}
-                      onChange={e => setFormData({ ...formData, company: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-bold"
-                      placeholder="Ex: Sacolas LTDA"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Telefone / WhatsApp</label>
-                    <input 
-                      type="text" 
-                      value={formData.phone}
-                      onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-bold"
-                      placeholder="(00) 00000-0000"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email</label>
-                    <input 
-                      type="email" 
-                      value={formData.email}
-                      onChange={e => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-bold"
-                      placeholder="contato@empresa.com"
-                    />
-                  </div>
-                  <div className="col-span-2 space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Observações</label>
-                    <textarea 
-                      value={formData.notes}
-                      onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                      rows={3}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-medium resize-none"
-                      placeholder="Alguma informação adicional..."
-                    />
-                  </div>
-                </div>
+                </form>
+              </div>
 
-                <div className="pt-4">
-                  <button 
-                    type="submit"
-                    className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100"
-                  >
-                    {editingClient ? 'Salvar Alterações' : 'Cadastrar Cliente'}
-                  </button>
-                </div>
-              </form>
+              <div className="px-8 py-6 border-t border-slate-100 bg-slate-50 shrink-0">
+                <button 
+                  type="submit"
+                  form="client-form"
+                  className="w-full py-4 bg-slate-900 text-white rounded-2xl font-semibold text-[15px] hover:bg-indigo-600 hover:shadow-lg hover:shadow-indigo-500/20 transition-all duration-300"
+                >
+                  {editingClient ? 'Salvar Alterações' : 'Cadastrar Cliente'}
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
