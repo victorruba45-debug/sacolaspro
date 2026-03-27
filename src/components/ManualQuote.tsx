@@ -11,10 +11,11 @@ import { storage } from '../lib/storage';
 
 // ─── Types & Props ───────────────────────────────────────────────────────────
 
-interface ManualQuoteProps {
+export interface ManualQuoteProps {
   catalogProducts?: string[];
-  activeBudget?: Budget | null;
+  activeBudget: Budget | null;
   onSave?: (budget: Budget) => void;
+  onDelete?: (id: string) => void;
   onAddCatalogItem?: () => void;
 }
 
@@ -353,6 +354,7 @@ export const ManualQuote: React.FC<ManualQuoteProps> = ({
   catalogProducts = [], 
   activeBudget, 
   onSave,
+  onDelete,
   onAddCatalogItem 
 }) => {
   const [budget, setBudget] = useState<Budget>(() => activeBudget || {
@@ -408,10 +410,13 @@ export const ManualQuote: React.FC<ManualQuoteProps> = ({
     }));
 
   const removeItem = (id: string) =>
-    setBudget(prev => ({
-      ...prev,
-      items: prev.items.filter(i => i.id !== id)
-    }));
+    setBudget(prev => {
+      const newItems = prev.items.filter(i => i.id !== id);
+      return {
+        ...prev,
+        items: newItems.length > 0 ? newItems : [DEFAULT_ITEM()]
+      };
+    });
 
   const addItem = () => setBudget(prev => ({
     ...prev,
@@ -687,7 +692,7 @@ export const ManualQuote: React.FC<ManualQuoteProps> = ({
                     catalogProducts={catalogProducts}
                     onChange={updateItem}
                     onRemove={removeItem}
-                    canRemove={budget.items.length > 1}
+                    canRemove={true}
                   />
                 ))}
               </AnimatePresence>
@@ -744,13 +749,28 @@ export const ManualQuote: React.FC<ManualQuoteProps> = ({
             <div className="h-px bg-white/10 relative z-10" />
 
             <div className="space-y-3 relative z-10">
-              <div className="grid grid-cols-2 gap-3 mb-5">
-                <button onClick={handleCopy} className="py-4 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-bold text-xs flex flex-col items-center justify-center gap-2 transition-all border border-white/10 hover:border-white/20">
-                  {copied ? <Check size={18} strokeWidth={2.5} className="text-emerald-400" /> : <Copy size={18} strokeWidth={2.5} className="text-slate-300" />} {copied ? 'Copiado' : 'Copiar Texto'}
-                </button>
-                <button onClick={generatePDF} className="py-4 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-bold text-xs flex flex-col items-center justify-center gap-2 transition-all border border-white/10 hover:border-white/20">
-                  <FileText size={18} strokeWidth={2.5} className="text-slate-300" /> Gerar PDF
-                </button>
+              <div className="flex flex-col gap-3 mb-5">
+                <div className="grid grid-cols-2 gap-3">
+                  <button onClick={handleCopy} className="py-4 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-bold text-xs flex flex-col items-center justify-center gap-2 transition-all border border-white/10 hover:border-white/20">
+                    {copied ? <Check size={18} strokeWidth={2.5} className="text-emerald-400" /> : <Copy size={18} strokeWidth={2.5} className="text-slate-300" />} {copied ? 'Copiado' : 'Copiar Texto'}
+                  </button>
+                  <button onClick={generatePDF} className="py-4 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-bold text-xs flex flex-col items-center justify-center gap-2 transition-all border border-white/10 hover:border-white/20">
+                    <FileText size={18} strokeWidth={2.5} className="text-slate-300" /> Gerar PDF
+                  </button>
+                </div>
+                
+                {onDelete && (
+                  <button 
+                    onClick={() => {
+                      if (confirm('Tem certeza que deseja excluir este orçamento permanentemente?')) {
+                        onDelete(budget.id);
+                      }
+                    }} 
+                    className="w-full py-4 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition-all border border-rose-500/20"
+                  >
+                    <Trash2 size={16} strokeWidth={2.5} /> Excluir Orçamento
+                  </button>
+                )}
               </div>
               <button 
                 onClick={() => onSave?.(budget)} 

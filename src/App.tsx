@@ -1062,6 +1062,9 @@ Gerado por SacolaPro
   };
 
   const handleAddToBudget = () => {
+    // Prevent double clicking or adding while navigating
+    if (view === 'manual' && activeBudget?.origin === 'calculator') return;
+
     const { bagType, handleType, config: cfg, unitPrice, unitCost } = currentResult;
 
     const newItem: BudgetItem = {
@@ -1083,10 +1086,20 @@ Gerado por SacolaPro
     };
 
     if (activeBudget) {
-      setActiveBudget({
-        ...activeBudget,
-        items: [...activeBudget.items, newItem]
-      });
+      // Avoid adding the exact same configuration twice in the same batch
+      const isDuplicate = activeBudget.items.some(i => 
+        i.name === newItem.name && 
+        i.description === newItem.description && 
+        i.quantity === newItem.quantity &&
+        i.unitPrice === newItem.unitPrice
+      );
+      
+      if (!isDuplicate) {
+        setActiveBudget({
+          ...activeBudget,
+          items: [...activeBudget.items, newItem]
+        });
+      }
     } else {
       setActiveBudget({
         id: crypto.randomUUID(),
@@ -1101,6 +1114,12 @@ Gerado por SacolaPro
       });
     }
     setView('manual');
+  };
+
+  const handleDeleteBudget = (id: string) => {
+    storage.deleteBudget(id);
+    setActiveBudget(null);
+    setView('quotes');
   };
 
   if (!session) {
@@ -1814,7 +1833,12 @@ Gerado por SacolaPro
               <ManualQuote
                 catalogProducts={bagTypes.map(t => t.name)}
                 activeBudget={activeBudget}
-                onSave={(budget) => { storage.saveBudget(budget); setView('quotes'); setActiveBudget(null); }}
+                onSave={(budget) => { 
+                  storage.saveBudget(budget); 
+                  setView('quotes'); 
+                  setActiveBudget(null); 
+                }}
+                onDelete={handleDeleteBudget}
                 onAddCatalogItem={() => setView('calculator')}
               />
             </motion.div>
