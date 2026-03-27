@@ -4,15 +4,15 @@
  */
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { 
-  Calculator, 
-  Package, 
-  Layers, 
-  Maximize2, 
-  Palette, 
-  Sparkles, 
-  Copy, 
-  Check, 
+import {
+  Calculator,
+  Package,
+  Layers,
+  Maximize2,
+  Palette,
+  Sparkles,
+  Copy,
+  Check,
   ChevronRight,
   TrendingDown,
   Info,
@@ -29,7 +29,8 @@ import {
   ImagePlus,
   Pencil,
   ChevronLeft,
-  Loader2
+  Loader2,
+  Plus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { jsPDF } from 'jspdf';
@@ -37,15 +38,30 @@ import html2canvas from 'html2canvas';
 import { supabase } from './lib/supabase';
 import { Auth } from './components/Auth';
 import { ManualQuote } from './components/ManualQuote';
+import { QuotesDashboard } from './components/QuotesDashboard';
+import { ClientsDashboard } from './components/ClientsDashboard';
 import { Session } from '@supabase/supabase-js';
-import { BagCategory, BagType, QuoteConfig, CalculationResult, Recommendation, HandleType, BagPreset, MarketTemplate } from './types';
-import { 
-  BAG_TYPES as INITIAL_BAG_TYPES, 
+import { storage } from './lib/storage';
+import {
+  BagCategory,
+  BagType,
+  QuoteConfig,
+  CalculationResult,
+  Recommendation,
+  HandleType,
+  BagPreset,
+  MarketTemplate,
+  Client,
+  Budget,
+  BudgetItem
+} from './types';
+import {
+  BAG_TYPES as INITIAL_BAG_TYPES,
   BAG_PRESETS as INITIAL_BAG_PRESETS,
   MARKET_TEMPLATES as INITIAL_MARKET_TEMPLATES,
-  QUANTITY_MULTIPLIERS as INITIAL_QUANTITY_MULTIPLIERS, 
-  COLOR_FACTORS as INITIAL_COLOR_FACTORS, 
-  LAMINATION_FACTORS as INITIAL_LAMINATION_FACTORS, 
+  QUANTITY_MULTIPLIERS as INITIAL_QUANTITY_MULTIPLIERS,
+  COLOR_FACTORS as INITIAL_COLOR_FACTORS,
+  LAMINATION_FACTORS as INITIAL_LAMINATION_FACTORS,
   HANDLE_TYPES as INITIAL_HANDLE_TYPES,
   MATERIAL_PRICING,
   PRINTING_BASE_PRICING,
@@ -53,7 +69,7 @@ import {
   SIZE_MULTIPLIERS as INITIAL_SIZE_MULTIPLIERS,
   TOOLTIPS,
   MATERIAL_COMPATIBILITY,
-  PROFIT_MARGIN as INITIAL_PROFIT_MARGIN 
+  PROFIT_MARGIN as INITIAL_PROFIT_MARGIN
 } from './constants';
 
 const Tooltip = ({ text }: { text: string }) => {
@@ -106,7 +122,7 @@ const DEFAULT_CONFIG: QuoteConfig = {
 const MockupPreview = ({ result, images, onClearImages }: { result: CalculationResult, images?: string[] | null, onClearImages?: () => void }) => {
   const { config: cfg, bagType } = result;
   const [activeIndex, setActiveIndex] = useState(0);
-  
+
   // Base colors based on material
   const materialColors: Record<string, { bg: string, border: string, inner: string }> = {
     kraft: { bg: '#e5d3b3', border: '#c1a17b', inner: '#d2b48c' },
@@ -121,7 +137,7 @@ const MockupPreview = ({ result, images, onClearImages }: { result: CalculationR
   };
 
   const mat = materialColors[bagType.id] || materialColors.kraft;
-  
+
   const bagColors: Record<string, string> = {
     white: '#f8fafc',
     kraft: '#e5d3b3',
@@ -134,20 +150,20 @@ const MockupPreview = ({ result, images, onClearImages }: { result: CalculationR
   if (images && images.length > 0) {
     return (
       <div className="relative aspect-square bg-slate-100 rounded-[2rem] overflow-hidden border border-slate-100 group">
-        <img 
-          src={images[activeIndex]} 
-          alt="Modelo Carregado" 
+        <img
+          src={images[activeIndex]}
+          alt="Modelo Carregado"
           className="w-full h-full object-cover"
         />
         {images.length > 1 && (
           <>
-            <button 
+            <button
               onClick={() => setActiveIndex(prev => (prev > 0 ? prev - 1 : images.length - 1))}
               className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-white/80 backdrop-blur-sm rounded-full text-slate-900 shadow-lg opacity-0 group-hover:opacity-100 transition-all"
             >
               <ChevronLeft size={20} />
             </button>
-            <button 
+            <button
               onClick={() => setActiveIndex(prev => (prev < images.length - 1 ? prev + 1 : 0))}
               className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-white/80 backdrop-blur-sm rounded-full text-slate-900 shadow-lg opacity-0 group-hover:opacity-100 transition-all"
             >
@@ -155,8 +171,8 @@ const MockupPreview = ({ result, images, onClearImages }: { result: CalculationR
             </button>
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
               {images.map((_, idx) => (
-                <div 
-                  key={idx} 
+                <div
+                  key={idx}
                   className={`w-1.5 h-1.5 rounded-full transition-all ${idx === activeIndex ? 'bg-emerald-600 w-4' : 'bg-slate-300'}`}
                 />
               ))}
@@ -169,7 +185,7 @@ const MockupPreview = ({ result, images, onClearImages }: { result: CalculationR
           </span>
         </div>
         {onClearImages && (
-          <button 
+          <button
             onClick={onClearImages}
             className="absolute top-6 right-6 p-2 bg-white/80 backdrop-blur-sm rounded-full text-slate-400 hover:text-rose-500 transition-all shadow-sm"
             title="Ver Representação Técnica"
@@ -182,26 +198,26 @@ const MockupPreview = ({ result, images, onClearImages }: { result: CalculationR
   }
 
   // Scale based on size
-  const scale = cfg.width / 40; 
+  const scale = cfg.width / 40;
   const hScale = cfg.height / 50;
-  
+
   const width = 180 * scale;
   const height = 230 * hScale;
 
   // Colors for printing
-  const printColor = cfg.colors === 'black' ? '#1a1a1a' : 
-                    cfg.colors.startsWith('pantone') ? '#e11d48' : 
-                    cfg.colors === '4' ? '#2563eb' : '#059669';
+  const printColor = cfg.colors === 'black' ? '#1a1a1a' :
+    cfg.colors.startsWith('pantone') ? '#e11d48' :
+      cfg.colors === '4' ? '#2563eb' : '#059669';
 
   const downloadMockup = () => {
     const svg = document.getElementById('bag-mockup');
     if (!svg) return;
-    
+
     const svgData = new XMLSerializer().serializeToString(svg);
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     const img = new Image();
-    
+
     img.onload = () => {
       canvas.width = 1024;
       canvas.height = 1024;
@@ -212,23 +228,23 @@ const MockupPreview = ({ result, images, onClearImages }: { result: CalculationR
         const x = (1024 - img.width * scale) / 2;
         const y = (1024 - img.height * scale) / 2;
         ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-        
+
         const link = document.createElement('a');
         link.download = `arte-tecnica-${bagType.id}.png`;
         link.href = canvas.toDataURL('image/png');
         link.click();
       }
     };
-    
+
     img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
   };
 
   return (
     <div className="relative aspect-square bg-slate-50 rounded-[2rem] overflow-hidden border border-slate-100 group">
       <div className="absolute inset-0 flex items-center justify-center p-12">
-        <svg 
+        <svg
           id="bag-mockup"
-          viewBox="0 0 400 400" 
+          viewBox="0 0 400 400"
           className="w-full h-full"
         >
           <defs>
@@ -239,52 +255,52 @@ const MockupPreview = ({ result, images, onClearImages }: { result: CalculationR
           </defs>
 
           {/* Shadow */}
-          <ellipse cx="200" cy={200 + height/2 + 10} rx={width/2 + 10} ry="5" fill="rgba(0,0,0,0.05)" />
+          <ellipse cx="200" cy={200 + height / 2 + 10} rx={width / 2 + 10} ry="5" fill="rgba(0,0,0,0.05)" />
 
           {/* Bag Body (Simplified 2D) */}
-          <path 
-            d={`M ${200 - width/2} ${200 - height/2} L ${200 + width/2} ${200 - height/2} L ${200 + width/2 + 5} ${200 + height/2} L ${200 - width/2 - 5} ${200 + height/2} Z`}
+          <path
+            d={`M ${200 - width / 2} ${200 - height / 2} L ${200 + width / 2} ${200 - height / 2} L ${200 + width / 2 + 5} ${200 + height / 2} L ${200 - width / 2 - 5} ${200 + height / 2} Z`}
             fill={currentBg}
             stroke={mat.border}
             strokeWidth="1.5"
           />
-          
+
           {/* Subtle Overlay */}
-          <path 
-            d={`M ${200 - width/2} ${200 - height/2} L ${200 + width/2} ${200 - height/2} L ${200 + width/2 + 5} ${200 + height/2} L ${200 - width/2 - 5} ${200 + height/2} Z`}
+          <path
+            d={`M ${200 - width / 2} ${200 - height / 2} L ${200 + width / 2} ${200 - height / 2} L ${200 + width / 2 + 5} ${200 + height / 2} L ${200 - width / 2 - 5} ${200 + height / 2} Z`}
             fill="url(#flatGrad)"
           />
 
           {/* Logo / Print (Professional Flat Style) */}
           <g transform={`translate(200, 200)`}>
-            <rect 
-              x={-width/4} 
-              y={-width/4} 
-              width={width/2} 
-              height={width/2} 
-              fill={printColor} 
-              opacity="0.08" 
+            <rect
+              x={-width / 4}
+              y={-width / 4}
+              width={width / 2}
+              height={width / 2}
+              fill={printColor}
+              opacity="0.08"
               rx="8"
             />
-            <text 
-              y="4" 
-              textAnchor="middle" 
-              fill={printColor} 
+            <text
+              y="4"
+              textAnchor="middle"
+              fill={printColor}
               className="font-black uppercase tracking-tighter"
-              style={{ fontSize: width/9, opacity: 0.6 }}
+              style={{ fontSize: width / 9, opacity: 0.6 }}
             >
               SUA MARCA
             </text>
             {cfg.printingSides === 'both' && (
-               <text 
-               y={width/4 + 12} 
-               textAnchor="middle" 
-               fill={printColor} 
-               className="font-bold uppercase opacity-30"
-               style={{ fontSize: width/18 }}
-             >
-               Impressão 360°
-             </text>
+              <text
+                y={width / 4 + 12}
+                textAnchor="middle"
+                fill={printColor}
+                className="font-bold uppercase opacity-30"
+                style={{ fontSize: width / 18 }}
+              >
+                Impressão 360°
+              </text>
             )}
           </g>
 
@@ -293,8 +309,8 @@ const MockupPreview = ({ result, images, onClearImages }: { result: CalculationR
             <g>
               {cfg.handleTypeId === 'tnt_handle' || cfg.handleTypeId === 'algodao_handle' ? (
                 <g>
-                  <path 
-                    d={`M ${200 - width/3} ${200 - height/2} L ${200 - width/3} ${200 - height/2 - 60} Q 200 ${200 - height/2 - 80} ${200 + width/3} ${200 - height/2 - 60} L ${200 + width/3} ${200 - height/2}`}
+                  <path
+                    d={`M ${200 - width / 3} ${200 - height / 2} L ${200 - width / 3} ${200 - height / 2 - 60} Q 200 ${200 - height / 2 - 80} ${200 + width / 3} ${200 - height / 2 - 60} L ${200 + width / 3} ${200 - height / 2}`}
                     fill="none"
                     stroke={cfg.handleTypeId === 'tnt_handle' ? '#94a3b8' : '#d2b48c'}
                     strokeWidth="12"
@@ -303,10 +319,10 @@ const MockupPreview = ({ result, images, onClearImages }: { result: CalculationR
                 </g>
               ) : cfg.handleTypeId === 'fita_soldada' ? (
                 <g>
-                   <rect x={200 - width/3 - 10} y={200 - height/2 - 10} width="20" height="40" fill="rgba(0,0,0,0.1)" rx="2" />
-                   <rect x={200 + width/3 - 10} y={200 - height/2 - 10} width="20" height="40" fill="rgba(0,0,0,0.1)" rx="2" />
-                   <path 
-                    d={`M ${200 - width/3} ${200 - height/2} Q 200 ${200 - height/2 - 60} ${200 + width/3} ${200 - height/2}`}
+                  <rect x={200 - width / 3 - 10} y={200 - height / 2 - 10} width="20" height="40" fill="rgba(0,0,0,0.1)" rx="2" />
+                  <rect x={200 + width / 3 - 10} y={200 - height / 2 - 10} width="20" height="40" fill="rgba(0,0,0,0.1)" rx="2" />
+                  <path
+                    d={`M ${200 - width / 3} ${200 - height / 2} Q 200 ${200 - height / 2 - 60} ${200 + width / 3} ${200 - height / 2}`}
                     fill="none"
                     stroke="rgba(0,0,0,0.2)"
                     strokeWidth="15"
@@ -314,8 +330,8 @@ const MockupPreview = ({ result, images, onClearImages }: { result: CalculationR
                   />
                 </g>
               ) : (
-                <path 
-                  d={`M ${200 - width/3.5} ${200 - height/2} Q 200 ${200 - height/2 - (cfg.handleTypeId === 'paper' ? 50 : 70)} ${200 + width/3.5} ${200 - height/2}`}
+                <path
+                  d={`M ${200 - width / 3.5} ${200 - height / 2} Q 200 ${200 - height / 2 - (cfg.handleTypeId === 'paper' ? 50 : 70)} ${200 + width / 3.5} ${200 - height / 2}`}
                   fill="none"
                   stroke={cfg.handleTypeId === 'paper' ? mat.border : (cfg.handleTypeId === 'nylon' ? '#475569' : '#94a3b8')}
                   strokeWidth={cfg.handleTypeId === 'paper' ? "6" : "4"}
@@ -327,29 +343,29 @@ const MockupPreview = ({ result, images, onClearImages }: { result: CalculationR
 
           {/* Boca de Palhaço Hole */}
           {bagType.id === 'palhaco' && (
-            <rect x={200 - 25} y={200 - height/2 + 20} width="50" height="15" rx="7.5" fill="rgba(0,0,0,0.1)" />
+            <rect x={200 - 25} y={200 - height / 2 + 20} width="50" height="15" rx="7.5" fill="rgba(0,0,0,0.1)" />
           )}
 
           {/* Camiseta Handles */}
           {bagType.id === 'camiseta' && (
             <g>
-              <path d={`M ${200 - width/2} ${200 - height/2} L ${200 - width/2} ${200 - height/2 - 40} Q ${200 - width/2 + 15} ${200 - height/2 - 55} ${200 - width/2 + 30} ${200 - height/2 - 40} L ${200 - width/2 + 30} ${200 - height/2}`} fill={currentBg} stroke={mat.border} strokeWidth="1.5" />
-              <path d={`M ${200 + width/2} ${200 - height/2} L ${200 + width/2} ${200 - height/2 - 40} Q ${200 + width/2 - 15} ${200 - height/2 - 55} ${200 + width/2 - 30} ${200 - height/2 - 40} L ${200 + width/2 - 30} ${200 - height/2}`} fill={currentBg} stroke={mat.border} strokeWidth="1.5" />
+              <path d={`M ${200 - width / 2} ${200 - height / 2} L ${200 - width / 2} ${200 - height / 2 - 40} Q ${200 - width / 2 + 15} ${200 - height / 2 - 55} ${200 - width / 2 + 30} ${200 - height / 2 - 40} L ${200 - width / 2 + 30} ${200 - height / 2}`} fill={currentBg} stroke={mat.border} strokeWidth="1.5" />
+              <path d={`M ${200 + width / 2} ${200 - height / 2} L ${200 + width / 2} ${200 - height / 2 - 40} Q ${200 + width / 2 - 15} ${200 - height / 2 - 55} ${200 + width / 2 - 30} ${200 - height / 2 - 40} L ${200 + width / 2 - 30} ${200 - height / 2}`} fill={currentBg} stroke={mat.border} strokeWidth="1.5" />
             </g>
           )}
 
           {/* Eyelets */}
           {cfg.hasEyelet && (
             <g>
-              <circle cx={200 - width/3.5} cy={200 - height/2 + 12} r="4" fill="#94a3b8" />
-              <circle cx={200 + width/3.5} cy={200 - height/2 + 12} r="4" fill="#94a3b8" />
+              <circle cx={200 - width / 3.5} cy={200 - height / 2 + 12} r="4" fill="#94a3b8" />
+              <circle cx={200 + width / 3.5} cy={200 - height / 2 + 12} r="4" fill="#94a3b8" />
             </g>
           )}
         </svg>
       </div>
 
       <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button 
+        <button
           onClick={downloadMockup}
           className="p-3 bg-white text-slate-900 rounded-full shadow-lg border border-slate-100 hover:bg-emerald-600 hover:text-white transition-all"
           title="Baixar Arte Técnica"
@@ -357,7 +373,7 @@ const MockupPreview = ({ result, images, onClearImages }: { result: CalculationR
           <Save size={18} />
         </button>
       </div>
-      
+
       <div className="absolute top-6 left-6">
         <span className="px-3 py-1 bg-white/80 backdrop-blur-sm text-slate-500 text-[9px] font-bold uppercase tracking-widest rounded-full border border-slate-200">
           Representação Técnica 2D
@@ -398,8 +414,16 @@ const compressImage = (file: File, maxWidth = 600, quality = 0.6): Promise<strin
 
 export default function App() {
   // Navigation State
-  const [view, setView] = useState<'calculator' | 'templates' | 'manual'>('calculator');
+  const [view, setView] = useState<'calculator' | 'templates' | 'manual' | 'quotes' | 'clients'>('calculator');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // Unified Budget State
+  const [activeBudget, setActiveBudget] = useState<Budget | null>(null);
+  const [clients, setClients] = useState<Client[]>([]);
+
+  useEffect(() => {
+    setClients(storage.getClients());
+  }, []);
 
   // Config State
   const [config, setConfig] = useState<QuoteConfig>(DEFAULT_CONFIG);
@@ -513,8 +537,8 @@ export default function App() {
     setIsSaving(true);
     const modelToSave = {
       title: newModelName,
-      description: editingModelId 
-        ? undefined 
+      description: editingModelId
+        ? undefined
         : `Modelo personalizado salvo em ${new Date().toLocaleDateString()}`,
       config: editingConfig ? { ...editingConfig } : { ...config },
       image_hint: 'custom',
@@ -529,9 +553,9 @@ export default function App() {
           .from('saved_models')
           .update(modelToSave)
           .eq('id', editingModelId);
-        
+
         if (error) throw error;
-        
+
         setSavedModels(prev => prev.map(m => m.id === editingModelId ? {
           ...m,
           title: modelToSave.title,
@@ -539,7 +563,7 @@ export default function App() {
           customImage: modelToSave.custom_image,
           config: modelToSave.config || m.config
         } : m));
-        
+
         setAlerts(prev => [...prev, "Modelo atualizado com sucesso!"]);
       } else {
         const { data, error } = await supabase
@@ -646,8 +670,8 @@ export default function App() {
 
       const { error } = await supabase
         .from('system_settings')
-        .upsert({ 
-          key: 'pricing_config', 
+        .upsert({
+          key: 'pricing_config',
           value: configToSave,
           updated_at: new Date().toISOString()
         });
@@ -738,7 +762,7 @@ export default function App() {
       updated = true;
       newAlerts.push(`Algodão Cru exige alça de algodão costurada.`);
     }
-    
+
     if (config.bagTypeId === 'tnt' && !['none', 'tnt_handle'].includes(newConfig.handleTypeId)) {
       newConfig.handleTypeId = 'tnt_handle';
       updated = true;
@@ -792,7 +816,7 @@ export default function App() {
   const calculatePrice = (cfg: QuoteConfig): CalculationResult => {
     const bagType = bagTypes.find(t => t.id === cfg.bagTypeId) || bagTypes[0];
     const handleType = handleTypes.find(h => h.id === cfg.handleTypeId) || handleTypes[0];
-    
+
     const getTier = (qty: number) => {
       if (qty >= 5000) return 5000;
       if (qty >= 2000) return 2000;
@@ -801,7 +825,7 @@ export default function App() {
     };
 
     const tier = getTier(cfg.quantity);
-    
+
     // 1. Custo Material (Base Tier + Custom Admin Base Price)
     let materialCostPerUnit = MATERIAL_PRICING[bagType.id]?.[tier] || 0;
     let baseOffset = bagType.basePrice || 0;
@@ -820,7 +844,7 @@ export default function App() {
     }
 
     materialCost *= sizeMultiplier;
-    
+
     // 2. Custo Impressão
     const printingBase = PRINTING_BASE_PRICING[tier] || 0;
     const printingSidesFactor = cfg.printingSides === 'both' ? 1.6 : 1.0;
@@ -833,7 +857,7 @@ export default function App() {
     // 4. Multiplicadores (Cores e Acabamento)
     const colorFactor = INITIAL_COLOR_FACTORS[cfg.colors] || 1.0;
     const laminationFactor = INITIAL_LAMINATION_FACTORS[cfg.lamination] || 1.0;
-    
+
     unitCost *= colorFactor;
     unitCost *= laminationFactor;
 
@@ -871,7 +895,7 @@ export default function App() {
   const productInsight = useMemo(() => {
     const { bagType, config: cfg } = currentResult;
     let score = 0;
-    
+
     if (bagType.id === 'triplex' || bagType.id === 'ecologica') score += 3;
     if (cfg.lamination === 'uv' || cfg.lamination === 'matte') score += 2;
     if (cfg.colors === '4') score += 2;
@@ -925,17 +949,17 @@ export default function App() {
 
 
   const generateQuoteText = () => {
-    const { 
-      bagType, 
-      handleType, 
-      config: cfg, 
-      unitPrice, 
+    const {
+      bagType,
+      handleType,
+      config: cfg,
+      unitPrice,
       totalPrice,
     } = currentResult;
     const sizeLabel = selectedPreset === 'custom' ? 'Personalizado' : selectedPreset.toUpperCase();
-    const colorLabel = cfg.colors === 'black' ? 'Preto (Mono)' : 
-                      cfg.colors.startsWith('pantone') ? `Pantone (${cfg.pantoneCode || 'Não informado'})` : 
-                      cfg.colors + ' cor(es)';
+    const colorLabel = cfg.colors === 'black' ? 'Preto (Mono)' :
+      cfg.colors.startsWith('pantone') ? `Pantone (${cfg.pantoneCode || 'Não informado'})` :
+        cfg.colors + ' cor(es)';
 
     return `
 ORÇAMENTO DE SACOLAS PERSONALIZADAS
@@ -949,11 +973,11 @@ RESUMO TÉCNICO:
 - Impressão: ${cfg.printingSides === 'both' ? 'Frente e Verso' : 'Apenas Frente'}
 - Acabamento: ${cfg.lamination === 'none' ? 'Nenhuma' : cfg.lamination.toUpperCase()}
 - Extras: ${[
-      cfg.hasEyelet ? 'Ilhós' : null,
-      cfg.hasBottomReinforcement ? 'Reforço Fundo' : null,
-      cfg.hasMouthReinforcement ? 'Reforço Boca' : null,
-      cfg.isExclusiveDieCut ? 'Faca Exclusiva' : null
-    ].filter(Boolean).join(', ') || 'Nenhum'}
+        cfg.hasEyelet ? 'Ilhós' : null,
+        cfg.hasBottomReinforcement ? 'Reforço Fundo' : null,
+        cfg.hasMouthReinforcement ? 'Reforço Boca' : null,
+        cfg.isExclusiveDieCut ? 'Faca Exclusiva' : null
+      ].filter(Boolean).join(', ') || 'Nenhum'}
 - Quantidade: ${cfg.quantity} unidades
 
 VALORES:
@@ -977,35 +1001,35 @@ Gerado por SacolaPro
   const generatePDF = async () => {
     const doc = new jsPDF();
     const { bagType, handleType, config: cfg, unitPrice, totalPrice } = currentResult;
-    
+
     // Header
     doc.setFontSize(22);
     doc.setTextColor(16, 185, 129); // Emerald 600
     doc.text('SacolaPro - Orçamento', 20, 20);
-    
+
     doc.setFontSize(12);
     doc.setTextColor(100, 116, 139); // Slate 500
     doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 20, 30);
     doc.text('------------------------------------------------------------', 20, 35);
-    
+
     // Technical Details
     doc.setFontSize(14);
     doc.setTextColor(30, 41, 59); // Slate 800
     doc.text('RESUMO TÉCNICO', 20, 45);
-    
+
     doc.setFontSize(11);
     doc.text(`- Tipo: ${bagType.category}`, 25, 55);
     doc.text(`- Material: ${bagType.name}`, 25, 62);
     doc.text(`- Alça: ${handleType.name}`, 25, 69);
     doc.text(`- Tamanho: ${selectedPreset === 'custom' ? 'Personalizado' : selectedPreset.toUpperCase()} (${cfg.width}x${cfg.height}x${cfg.side} cm)`, 25, 76);
-    
-    const colorLabel = cfg.colors === 'black' ? 'Preto (Mono)' : 
-                      cfg.colors.startsWith('pantone') ? `Pantone (${cfg.pantoneCode || 'Não informado'})` : 
-                      cfg.colors + ' cor(es)';
+
+    const colorLabel = cfg.colors === 'black' ? 'Preto (Mono)' :
+      cfg.colors.startsWith('pantone') ? `Pantone (${cfg.pantoneCode || 'Não informado'})` :
+        cfg.colors + ' cor(es)';
     doc.text(`- Cores: ${colorLabel}`, 25, 83);
     doc.text(`- Impressão: ${cfg.printingSides === 'both' ? 'Frente e Verso' : 'Apenas Frente'}`, 25, 90);
     doc.text(`- Acabamento: ${cfg.lamination === 'none' ? 'Nenhuma' : cfg.lamination.toUpperCase()}`, 25, 97);
-    
+
     const extras = [
       cfg.hasEyelet ? 'Ilhós' : null,
       cfg.hasBottomReinforcement ? 'Reforço Fundo' : null,
@@ -1014,18 +1038,18 @@ Gerado por SacolaPro
     ].filter(Boolean).join(', ') || 'Nenhum';
     doc.text(`- Extras: ${extras}`, 25, 104);
     doc.text(`- Quantidade: ${cfg.quantity} unidades`, 25, 111);
-    
+
     // Values
     doc.text('------------------------------------------------------------', 20, 120);
     doc.setFontSize(14);
     doc.text('VALORES', 20, 130);
-    
+
     doc.setFontSize(12);
     doc.text(`Preço Unitário: R$ ${unitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 25, 140);
     doc.setFontSize(16);
     doc.setTextColor(16, 185, 129);
     doc.text(`TOTAL DO LOTE: R$ ${totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 25, 150);
-    
+
     // Footer
     doc.setFontSize(10);
     doc.setTextColor(148, 163, 184); // Slate 400
@@ -1034,6 +1058,48 @@ Gerado por SacolaPro
     doc.text('Gerado automaticamente por SacolaPro', 20, 184);
 
     doc.save(`orcamento-sacolapro-${bagType.id}.pdf`);
+  };
+
+  const handleAddToBudget = () => {
+    const { bagType, handleType, config: cfg, unitPrice, unitCost } = currentResult;
+
+    const newItem: BudgetItem = {
+      id: crypto.randomUUID(),
+      type: 'catalog',
+      name: bagType.name,
+      description: `${bagType.name} - ${cfg.width}x${cfg.height}x${cfg.side} cm`,
+      quantity: cfg.quantity,
+      unitCost: unitCost,
+      unitPrice: unitPrice,
+      subtotal: unitPrice * cfg.quantity,
+      snapshot: {
+        material: bagType.name,
+        size: `${cfg.width}x${cfg.height}x${cfg.side} cm`,
+        finish: cfg.lamination,
+        printing: `${cfg.colors} cores`,
+        config: { ...cfg }
+      }
+    };
+
+    if (activeBudget) {
+      setActiveBudget({
+        ...activeBudget,
+        items: [...activeBudget.items, newItem]
+      });
+    } else {
+      setActiveBudget({
+        id: crypto.randomUUID(),
+        origin: 'calculator',
+        status: 'draft',
+        date: new Date().toISOString(),
+        items: [newItem],
+        totalValue: newItem.subtotal,
+        totalCost: unitCost * cfg.quantity,
+        margin: ((newItem.subtotal - (unitCost * cfg.quantity)) / newItem.subtotal) * 100,
+        updatedAt: new Date().toISOString()
+      });
+    }
+    setView('manual');
   };
 
   if (!session) {
@@ -1071,7 +1137,7 @@ Gerado por SacolaPro
                     </p>
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={closeSaveModal}
                   className="p-2 hover:bg-slate-200 rounded-full transition-colors"
                 >
@@ -1084,7 +1150,7 @@ Gerado por SacolaPro
                   <div className="space-y-6">
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nome do Modelo</label>
-                      <input 
+                      <input
                         type="text"
                         autoFocus
                         placeholder="Ex: Sacola Kraft Natal 2024"
@@ -1100,7 +1166,7 @@ Gerado por SacolaPro
                         {newModelImages.map((img, idx) => (
                           <div key={idx} className="aspect-square rounded-2xl overflow-hidden relative group border border-slate-100">
                             <img src={img} alt={`Preview ${idx}`} className="w-full h-full object-cover" />
-                            <button 
+                            <button
                               onClick={() => removeImage(idx)}
                               className="absolute top-2 right-2 p-1.5 bg-rose-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                             >
@@ -1113,7 +1179,7 @@ Gerado por SacolaPro
                             )}
                           </div>
                         ))}
-                        <button 
+                        <button
                           onClick={() => fileInputRef.current?.click()}
                           className="aspect-square rounded-2xl border-2 border-dashed border-slate-200 hover:border-emerald-500 bg-slate-50 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all"
                         >
@@ -1121,7 +1187,7 @@ Gerado por SacolaPro
                           <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Adicionar</span>
                         </button>
                       </div>
-                      <input 
+                      <input
                         type="file"
                         ref={fileInputRef}
                         onChange={handleImageUpload}
@@ -1136,13 +1202,13 @@ Gerado por SacolaPro
                     <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
                       <Settings size={14} className="text-emerald-600" /> Configuração Técnica
                     </h4>
-                    
+
                     {editingConfig && (
                       <div className="space-y-4">
                         <div className="grid grid-cols-3 gap-3">
                           <div className="space-y-1">
                             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Largura</label>
-                            <input 
+                            <input
                               type="number"
                               value={editingConfig.width}
                               onChange={(e) => setEditingConfig({ ...editingConfig, width: Number(e.target.value) })}
@@ -1151,7 +1217,7 @@ Gerado por SacolaPro
                           </div>
                           <div className="space-y-1">
                             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Altura</label>
-                            <input 
+                            <input
                               type="number"
                               value={editingConfig.height}
                               onChange={(e) => setEditingConfig({ ...editingConfig, height: Number(e.target.value) })}
@@ -1160,7 +1226,7 @@ Gerado por SacolaPro
                           </div>
                           <div className="space-y-1">
                             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Lateral</label>
-                            <input 
+                            <input
                               type="number"
                               value={editingConfig.side}
                               onChange={(e) => setEditingConfig({ ...editingConfig, side: Number(e.target.value) })}
@@ -1171,7 +1237,7 @@ Gerado por SacolaPro
 
                         <div className="space-y-1">
                           <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Quantidade</label>
-                          <input 
+                          <input
                             type="number"
                             value={editingConfig.quantity}
                             onChange={(e) => setEditingConfig({ ...editingConfig, quantity: Number(e.target.value) })}
@@ -1181,7 +1247,7 @@ Gerado por SacolaPro
 
                         <div className="space-y-1">
                           <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Cores</label>
-                          <select 
+                          <select
                             value={editingConfig.colors}
                             onChange={(e) => setEditingConfig({ ...editingConfig, colors: e.target.value as any })}
                             className="w-full px-3 py-2 rounded-xl border border-slate-200 font-bold text-xs"
@@ -1207,13 +1273,13 @@ Gerado por SacolaPro
               </div>
 
               <div className="p-8 bg-slate-50 border-t border-slate-100 flex gap-3 flex-shrink-0">
-                <button 
+                <button
                   onClick={closeSaveModal}
                   className="flex-1 py-4 bg-white text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-100 border border-slate-200 transition-all"
                 >
                   Cancelar
                 </button>
-                <button 
+                <button
                   onClick={handleSaveModel}
                   disabled={isSaving}
                   className="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1250,20 +1316,20 @@ Gerado por SacolaPro
               <div className="flex-1 bg-slate-100 relative group overflow-hidden">
                 {previewModel.customImages && previewModel.customImages.length > 0 ? (
                   <>
-                    <img 
-                      src={previewModel.customImages[activeImageIndex]} 
-                      alt={previewModel.title} 
+                    <img
+                      src={previewModel.customImages[activeImageIndex]}
+                      alt={previewModel.title}
                       className="w-full h-full object-contain"
                     />
                     {previewModel.customImages.length > 1 && (
                       <>
-                        <button 
+                        <button
                           onClick={() => setActiveImageIndex(prev => (prev > 0 ? prev - 1 : previewModel.customImages!.length - 1))}
                           className="absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-white/80 backdrop-blur-sm rounded-full text-slate-900 shadow-lg opacity-0 group-hover:opacity-100 transition-all"
                         >
                           <ChevronLeft size={24} />
                         </button>
-                        <button 
+                        <button
                           onClick={() => setActiveImageIndex(prev => (prev < previewModel.customImages!.length - 1 ? prev + 1 : 0))}
                           className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-white/80 backdrop-blur-sm rounded-full text-slate-900 shadow-lg opacity-0 group-hover:opacity-100 transition-all"
                         >
@@ -1271,8 +1337,8 @@ Gerado por SacolaPro
                         </button>
                         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
                           {previewModel.customImages.map((_, idx) => (
-                            <div 
-                              key={idx} 
+                            <div
+                              key={idx}
                               className={`w-2 h-2 rounded-full transition-all ${idx === activeImageIndex ? 'bg-emerald-600 w-6' : 'bg-slate-300'}`}
                             />
                           ))}
@@ -1285,7 +1351,7 @@ Gerado por SacolaPro
                     <Package size={100} className="text-slate-300" />
                   </div>
                 )}
-                <button 
+                <button
                   onClick={() => setPreviewModel(null)}
                   className="absolute top-6 left-6 p-3 bg-white/80 backdrop-blur-sm rounded-full text-slate-900 shadow-lg md:hidden"
                 >
@@ -1297,14 +1363,14 @@ Gerado por SacolaPro
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <h3 className="text-2xl font-black text-slate-900">{previewModel.title}</h3>
-                    <button 
+                    <button
                       onClick={() => setPreviewModel(null)}
                       className="p-2 hover:bg-slate-100 rounded-full transition-colors hidden md:block"
                     >
                       <X size={24} className="text-slate-400" />
                     </button>
                   </div>
-                  
+
                   <p className="text-slate-500 font-medium leading-relaxed">{previewModel.description}</p>
 
                   <div className="space-y-4 pt-4 border-t border-slate-100">
@@ -1331,7 +1397,7 @@ Gerado por SacolaPro
                 </div>
 
                 <div className="pt-8 space-y-3">
-                  <button 
+                  <button
                     onClick={() => {
                       applyMarketTemplate(previewModel);
                       setPreviewModel(null);
@@ -1340,7 +1406,7 @@ Gerado por SacolaPro
                   >
                     Carregar Configuração <ChevronRight size={16} />
                   </button>
-                  <button 
+                  <button
                     onClick={() => startEditing(previewModel)}
                     className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
                   >
@@ -1356,13 +1422,13 @@ Gerado por SacolaPro
       {/* Admin Modal */}
       <AnimatePresence>
         {isAdminOpen && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
           >
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
@@ -1408,8 +1474,8 @@ Gerado por SacolaPro
                             </div>
                             <div className="w-32">
                               <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Preço Base</span>
-                              <input 
-                                type="number" 
+                              <input
+                                type="number"
                                 value={type.basePrice}
                                 step="0.01"
                                 onChange={(e) => {
@@ -1438,8 +1504,8 @@ Gerado por SacolaPro
                             </div>
                             <div className="w-32">
                               <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Preço Unit.</span>
-                              <input 
-                                type="number" 
+                              <input
+                                type="number"
                                 value={handle.price}
                                 step="0.01"
                                 onChange={(e) => {
@@ -1470,8 +1536,8 @@ Gerado por SacolaPro
                             <div className="grid grid-cols-3 gap-2 sm:col-span-3">
                               <div>
                                 <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Largura</span>
-                                <input 
-                                  type="number" 
+                                <input
+                                  type="number"
                                   value={preset.width}
                                   onChange={(e) => {
                                     const newPresets = [...bagPresets];
@@ -1483,8 +1549,8 @@ Gerado por SacolaPro
                               </div>
                               <div>
                                 <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Altura</span>
-                                <input 
-                                  type="number" 
+                                <input
+                                  type="number"
                                   value={preset.height}
                                   onChange={(e) => {
                                     const newPresets = [...bagPresets];
@@ -1496,8 +1562,8 @@ Gerado por SacolaPro
                               </div>
                               <div>
                                 <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Lateral</span>
-                                <input 
-                                  type="number" 
+                                <input
+                                  type="number"
                                   value={preset.side}
                                   onChange={(e) => {
                                     const newPresets = [...bagPresets];
@@ -1518,8 +1584,8 @@ Gerado por SacolaPro
                         <h4 className="font-bold text-emerald-800">Margem de Lucro Global</h4>
                         <p className="text-xs text-emerald-600">Multiplicador aplicado sobre o custo final</p>
                       </div>
-                      <input 
-                        type="number" 
+                      <input
+                        type="number"
                         value={profitMargin}
                         step="0.05"
                         onChange={(e) => setProfitMargin(Number(e.target.value))}
@@ -1532,7 +1598,7 @@ Gerado por SacolaPro
 
               {!!session && (
                 <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end">
-                  <button 
+                  <button
                     onClick={handleSaveAdminSettings}
                     disabled={isAdminSaving}
                     className="bg-slate-800 text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-900 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1563,49 +1629,61 @@ Gerado por SacolaPro
             </div>
             <h1 className="text-xl font-bold tracking-tight text-slate-800">Sacola<span className="text-emerald-600">Pro</span></h1>
           </div>
-          
+
           <nav className="hidden md:flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
-            <button 
+            <button
               onClick={() => setView('calculator')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
-                view === 'calculator' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-              }`}
+              className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${view === 'calculator' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                }`}
             >
               Calculadora
             </button>
-            <button 
+            <button
               onClick={() => setView('templates')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
-                view === 'templates' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-              }`}
+              className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${view === 'templates' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                }`}
             >
-              Modelos Prontos
+              Modelos
             </button>
-            <button 
+            <button
               onClick={() => setView('manual')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
-                view === 'manual' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-              }`}
+              className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${view === 'manual' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                }`}
             >
-              Orç. Manual
+              Manual
+            </button>
+            <div className="w-px h-4 bg-slate-300 mx-1" />
+            <button
+              onClick={() => setView('quotes')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${view === 'quotes' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                }`}
+            >
+              Orçamentos
+            </button>
+            <button
+              onClick={() => setView('clients')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${view === 'clients' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                }`}
+            >
+              Clientes
             </button>
           </nav>
 
           <div className="flex items-center gap-2">
             <div className="hidden md:flex items-center gap-3">
-              <button 
+              <button
                 onClick={resetConfig}
                 className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all flex items-center gap-2 text-sm font-bold"
               >
                 <RotateCcw size={18} /> <span>Recomeçar</span>
               </button>
-              <button 
+              <button
                 onClick={() => setIsAdminOpen(true)}
                 className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all"
               >
                 <Settings size={18} />
               </button>
-              <button 
+              <button
                 onClick={handleLogout}
                 className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition-all flex items-center gap-2"
                 title="Sair do Sistema"
@@ -1634,44 +1712,55 @@ Gerado por SacolaPro
               className="md:hidden bg-white border-t border-slate-100 overflow-hidden"
             >
               <div className="p-4 space-y-2">
-                <button 
+                <button
                   onClick={() => { setView('calculator'); setIsMenuOpen(false); }}
-                  className={`w-full px-6 py-4 rounded-2xl text-sm font-black uppercase tracking-widest text-left transition-all ${
-                    view === 'calculator' ? 'bg-emerald-50 text-emerald-700 border-l-4 border-emerald-500' : 'text-slate-500'
-                  }`}
+                  className={`w-full px-6 py-4 rounded-2xl text-sm font-black uppercase tracking-widest text-left transition-all ${view === 'calculator' ? 'bg-emerald-50 text-emerald-700 border-l-4 border-emerald-500' : 'text-slate-500'
+                    }`}
                 >
                   Calculadora
                 </button>
-                <button 
+                <button
                   onClick={() => { setView('templates'); setIsMenuOpen(false); }}
-                  className={`w-full px-6 py-4 rounded-2xl text-sm font-black uppercase tracking-widest text-left transition-all ${
-                    view === 'templates' ? 'bg-emerald-50 text-emerald-700 border-l-4 border-emerald-500' : 'text-slate-500'
-                  }`}
+                  className={`w-full px-6 py-4 rounded-2xl text-sm font-black uppercase tracking-widest text-left transition-all ${view === 'templates' ? 'bg-emerald-50 text-emerald-700 border-l-4 border-emerald-500' : 'text-slate-500'
+                    }`}
                 >
                   Modelos Prontos
                 </button>
-                <button 
+                <button
                   onClick={() => { setView('manual'); setIsMenuOpen(false); }}
-                  className={`w-full px-6 py-4 rounded-2xl text-sm font-black uppercase tracking-widest text-left transition-all ${
-                    view === 'manual' ? 'bg-emerald-50 text-emerald-700 border-l-4 border-emerald-500' : 'text-slate-500'
-                  }`}
+                  className={`w-full px-6 py-4 rounded-2xl text-sm font-black uppercase tracking-widest text-left transition-all ${view === 'manual' ? 'bg-emerald-50 text-emerald-700 border-l-4 border-emerald-500' : 'text-slate-500'
+                    }`}
                 >
                   Orç. Manual
                 </button>
+                <button
+                  onClick={() => { setView('quotes'); setIsMenuOpen(false); }}
+                  className={`w-full px-6 py-4 rounded-2xl text-sm font-black uppercase tracking-widest text-left transition-all ${view === 'quotes' ? 'bg-emerald-50 text-emerald-700 border-l-4 border-emerald-500' : 'text-slate-500'
+                    }`}
+                >
+                  Listar Orçamentos
+                </button>
+                <button
+                  onClick={() => { setView('clients'); setIsMenuOpen(false); }}
+                  className={`w-full px-6 py-4 rounded-2xl text-sm font-black uppercase tracking-widest text-left transition-all ${view === 'clients' ? 'bg-emerald-50 text-emerald-700 border-l-4 border-emerald-500' : 'text-slate-500'
+                    }`}
+                >
+                  Clientes
+                </button>
                 <div className="h-px bg-slate-100 my-2" />
-                <button 
+                <button
                   onClick={() => { setIsAdminOpen(true); setIsMenuOpen(false); }}
                   className="w-full px-6 py-4 rounded-2xl text-sm font-black uppercase tracking-widest text-slate-500 text-left flex items-center gap-3"
                 >
                   <Settings size={20} /> Configurações
                 </button>
-                <button 
+                <button
                   onClick={resetConfig}
                   className="w-full px-6 py-4 rounded-2xl text-sm font-black uppercase tracking-widest text-slate-500 text-left flex items-center gap-3"
                 >
                   <RotateCcw size={20} /> Recomeçar
                 </button>
-                <button 
+                <button
                   onClick={handleLogout}
                   className="w-full px-6 py-4 rounded-2xl text-sm font-black uppercase tracking-widest text-rose-500 text-left flex items-center gap-3"
                 >
@@ -1704,745 +1793,675 @@ Gerado por SacolaPro
           </AnimatePresence>
         </div>
 
-        {view === 'manual' ? (
-          <ManualQuote catalogProducts={bagTypes.map(t => t.name)} />
-        ) : view === 'templates' ? (
-          <div className="space-y-8">
-            {/* Saved Models Section */}
-            {savedModels.length > 0 && (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-black tracking-tight text-slate-900">Meus Modelos Salvos</h2>
-                  <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest">
-                    {savedModels.length} {savedModels.length === 1 ? 'Modelo' : 'Modelos'}
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {savedModels.map((template) => (
-                    <motion.div
-                      key={template.id}
-                      whileHover={{ y: -5 }}
-                      className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all group relative"
-                    >
-                      <div className="absolute top-4 right-4 z-30 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteModel(template.id);
-                          }}
-                          className="p-2 bg-white/80 backdrop-blur-sm text-slate-400 hover:text-rose-500 rounded-full transition-all border border-slate-100"
-                          title={!!session ? "Remover Modelo" : "Acesso Restrito"}
+        <AnimatePresence mode="wait">
+          {view === 'quotes' ? (
+            <motion.div key="quotes" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+              <QuotesDashboard
+                onEdit={(budget) => { setActiveBudget(budget); setView('manual'); }}
+              />
+            </motion.div>
+          ) : view === 'clients' ? (
+            <motion.div key="clients" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+              <ClientsDashboard />
+            </motion.div>
+          ) : view === 'manual' ? (
+            <motion.div key="manual" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+              <ManualQuote
+                catalogProducts={bagTypes.map(t => t.name)}
+                activeBudget={activeBudget}
+                onSave={(budget) => { storage.saveBudget(budget); setView('quotes'); setActiveBudget(null); }}
+                onAddCatalogItem={() => setView('calculator')}
+              />
+            </motion.div>
+          ) : view === 'templates' ? (
+            <motion.div key="templates" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <div className="space-y-8">
+                {/* Saved Models Section */}
+                {savedModels.length > 0 && (
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-2xl font-black tracking-tight text-slate-900">Meus Modelos Salvos</h2>
+                      <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest">
+                        {savedModels.length} {savedModels.length === 1 ? 'Modelo' : 'Modelos'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {savedModels.map((template) => (
+                        <motion.div
+                          key={template.id}
+                          whileHover={{ y: -5 }}
+                          className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all group relative"
                         >
-                          {!!session ? <Trash2 size={16} /> : <Lock size={16} />}
-                        </button>
-                      </div>
-
-                      <div 
-                        onClick={() => {
-                          setPreviewModel(template);
-                          setActiveImageIndex(0);
-                        }}
-                        className="aspect-[16/10] bg-slate-100 relative overflow-hidden flex items-center justify-center cursor-pointer"
-                      >
-                        {template.customImage ? (
-                          <img 
-                            src={template.customImage} 
-                            alt={template.title} 
-                            className="w-full h-full object-cover"
-                            referrerPolicy="no-referrer"
-                          />
-                        ) : (
-                          <>
-                            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent" />
-                            <div className="scale-75 opacity-80 group-hover:scale-90 group-hover:opacity-100 transition-all duration-500">
-                              <Package size={60} className="text-emerald-600" />
-                            </div>
-                          </>
-                        )}
-                        {template.customImages && template.customImages.length > 1 && (
-                          <div className="absolute bottom-3 right-3 px-2 py-1 bg-black/50 backdrop-blur-sm text-white text-[8px] font-black rounded-lg z-20">
-                            +{template.customImages.length - 1} FOTOS
+                          <div className="absolute top-4 right-4 z-30 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteModel(template.id);
+                              }}
+                              className="p-2 bg-white/80 backdrop-blur-sm text-slate-400 hover:text-rose-500 rounded-full transition-all border border-slate-100"
+                              title={!!session ? "Remover Modelo" : "Acesso Restrito"}
+                            >
+                              {!!session ? <Trash2 size={16} /> : <Lock size={16} />}
+                            </button>
                           </div>
-                        )}
-                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10">
-                          <span className="px-4 py-2 bg-white text-slate-900 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
-                            Ver Fotos
-                          </span>
-                        </div>
-                      </div>
-                      <div className="p-8 space-y-4">
-                        <div>
-                          <h3 className="text-xl font-black text-slate-900">{template.title}</h3>
-                          <p className="text-sm text-slate-500 font-medium mt-1 leading-relaxed">{template.description}</p>
-                        </div>
-                        <div className="flex gap-2">
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              startEditing(template);
-                            }}
-                            className="flex-1 py-3 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center justify-center gap-2"
-                          >
-                            <Pencil size={12} /> Editar
-                          </button>
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
+
+                          <div
+                            onClick={() => {
                               setPreviewModel(template);
-                              setActiveImageIndex(0);
                             }}
-                            className="px-4 py-3 bg-slate-100 text-slate-600 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all flex items-center justify-center border border-slate-200"
+                            className="aspect-square bg-slate-50 relative overflow-hidden cursor-pointer"
                           >
-                            Ver
-                          </button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-                <div className="h-px bg-slate-100 my-8" />
-              </div>
-            )}
-
-            <div className="text-center space-y-2 max-w-2xl mx-auto">
-              <h2 className="text-3xl font-black tracking-tight text-slate-900">Modelos Prontos do Mercado</h2>
-              <p className="text-slate-500 font-medium">Escolha um modelo pré-configurado para agilizar seu orçamento. Você poderá ajustar os detalhes depois.</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {marketTemplates.map((template) => (
-                <motion.div
-                  key={template.id}
-                  whileHover={{ y: -5 }}
-                  className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl transition-all group"
-                >
-                  <div className="aspect-[16/10] bg-slate-100 relative overflow-hidden flex items-center justify-center">
-                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent" />
-                    {/* Mini Preview based on imageHint */}
-                    <div className="scale-75 opacity-80 group-hover:scale-90 group-hover:opacity-100 transition-all duration-500">
-                      <svg width="120" height="140" viewBox="0 0 200 240" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path 
-                          d={template.imageHint === 'camiseta' ? "M40 50 L40 20 L70 20 L70 50 L150 50 L150 20 L180 20 L180 50 L190 220 L30 220 Z" : "M40 50H180L190 220H30L40 50Z"} 
-                          fill={template.imageHint === 'kraft' ? '#D2B48C' : '#FFFFFF'} 
-                          stroke="rgba(0,0,0,0.1)"
-                        />
-                        {template.imageHint === 'vinho' && <rect x="90" y="80" width="20" height="80" rx="4" fill="rgba(0,0,0,0.05)" />}
-                        {template.imageHint === 'palhaco' && <rect x="85" y="65" width="30" height="10" rx="5" fill="rgba(0,0,0,0.1)" />}
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="p-8 space-y-4">
-                    <div>
-                      <h3 className="text-xl font-black text-slate-900">{template.title}</h3>
-                      <p className="text-sm text-slate-500 font-medium mt-1 leading-relaxed">{template.description}</p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <span className="px-3 py-1 bg-slate-100 rounded-full text-[10px] font-black uppercase tracking-widest text-slate-500">
-                        {template.config.width}x{template.config.height} cm
-                      </span>
-                      <span className="px-3 py-1 bg-emerald-50 rounded-full text-[10px] font-black uppercase tracking-widest text-emerald-600">
-                        {template.config.quantity} un
-                      </span>
-                    </div>
-                    <button 
-                      onClick={() => applyMarketTemplate(template)}
-                      className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center justify-center gap-2"
-                    >
-                      Usar este Modelo <ChevronRight size={16} />
-                    </button>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8"> {/* calculator */}
-            {/* Configuration Column */}
-            <div className="lg:col-span-7 space-y-6">
-          <section className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Layers size={18} className="text-emerald-600" />
-                <h2 className="font-bold">Configuração do Produto</h2>
-              </div>
-              <div className={`px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 ${productInsight.bg} ${productInsight.color} ${productInsight.border}`}>
-                {productInsight.icon} {productInsight.label}
-              </div>
-            </div>
-            
-            <div className="p-6 space-y-8">
-              {/* Bag Type Selection */}
-              <div className="space-y-3">
-                <label className="text-sm font-bold text-slate-600 flex items-center gap-2 uppercase tracking-wider">
-                  1. Tipo e Material <Tooltip text="Escolha o material ideal para sua marca. Papéis transmitem sofisticação e plásticos oferecem praticidade." />
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {bagTypes.map((type) => {
-                    return (
-                      <button
-                        key={type.id}
-                        onClick={() => setConfig(prev => ({ ...prev, bagTypeId: type.id }))}
-                        className={`p-4 rounded-2xl border text-left transition-all relative overflow-hidden group ${
-                          config.bagTypeId === type.id 
-                          ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500' 
-                          : 'border-slate-200 hover:border-slate-300 bg-white'
-                        }`}
-                      >
-                        <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{type.category}</span>
-                        <span className={`block text-sm font-bold leading-tight ${config.bagTypeId === type.id ? 'text-emerald-700' : 'text-slate-700'}`}>
-                          {type.name}
-                        </span>
-                        {config.bagTypeId === type.id && (
-                          <div className="absolute top-2 right-2 text-emerald-500">
-                            <Check size={14} />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <Package size={48} className="text-slate-200" />
+                            </div>
                           </div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Material Info Card */}
-                <AnimatePresence mode="wait">
-                  {bagTypes.find(t => t.id === config.bagTypeId) && (
-                    <motion.div
-                      key={config.bagTypeId}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="p-2 bg-white rounded-lg border border-slate-200 text-emerald-600">
-                          <Info size={16} />
-                        </div>
-                        <div>
-                          <p className="text-xs font-bold text-slate-800 leading-relaxed">
-                            {bagTypes.find(t => t.id === config.bagTypeId)?.description}
-                          </p>
-                          <p className="text-[11px] font-medium text-slate-500 mt-1 leading-relaxed italic">
-                            {bagTypes.find(t => t.id === config.bagTypeId)?.purpose}
-                          </p>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* Handle Selection */}
-              <div className="space-y-3">
-                <label className="text-sm font-bold text-slate-600 flex items-center gap-2 uppercase tracking-wider">
-                  2. Tipo de Alça <Tooltip text="A alça define o conforto e o estilo da sacola. Cordões são mais premium, enquanto alças de papel são sustentáveis." />
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {handleTypes.map((handle) => {
-                    const rules = MATERIAL_COMPATIBILITY[config.bagTypeId];
-                    const isPaper = bagTypes.find(t => t.id === config.bagTypeId)?.category === BagCategory.PAPER;
-                    const cordaoHandles = ['nylon', 'cotton', 'gorgurao', 'ribbon', 'paper'];
-                    
-                    let disabledReason = null;
-                    if (config.bagTypeId === 'camiseta' && handle.id !== 'none') disabledReason = "Não permitido em camiseta";
-                    if (config.bagTypeId === 'palhaco' && handle.id !== 'none') disabledReason = "Não permitido em boca de palhaço";
-                    if (config.bagTypeId === 'tnt' && !['none', 'tnt_handle'].includes(handle.id)) disabledReason = "Apenas TNT ou Sem Alça";
-                    if (config.bagTypeId === 'algodao' && handle.id !== 'algodao_handle') disabledReason = "Apenas Alça de Algodão";
-                    if (config.bagTypeId === 'alca_fita' && handle.id !== 'fita_soldada') disabledReason = "Apenas Alça Fita Soldada";
-                    if (!isPaper && cordaoHandles.includes(handle.id)) {
-                      disabledReason = "Apenas para papel";
-                    }
-
-                    return (
-                      <button
-                        key={handle.id}
-                        disabled={!!disabledReason}
-                        title={disabledReason || ''}
-                        onClick={() => setConfig(prev => ({ ...prev, handleTypeId: handle.id }))}
-                        className={`p-4 rounded-2xl border text-left transition-all relative overflow-hidden group ${
-                          config.handleTypeId === handle.id 
-                          ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500' 
-                          : !!disabledReason 
-                            ? 'opacity-40 cursor-not-allowed bg-slate-50 border-slate-100'
-                            : 'border-slate-200 hover:border-slate-300 bg-white'
-                        }`}
-                      >
-                        <span className={`block text-sm font-bold leading-tight ${config.handleTypeId === handle.id ? 'text-emerald-700' : 'text-slate-700'}`}>
-                          {handle.name}
-                        </span>
-                        {config.handleTypeId === handle.id && (
-                          <div className="absolute top-2 right-2 text-emerald-500">
-                            <Check size={14} />
+                          <div className="p-8 space-y-4">
+                            <div>
+                              <h3 className="text-xl font-black text-slate-900">{template.title}</h3>
+                              <p className="text-sm text-slate-500 font-medium mt-1 leading-relaxed">{template.description}</p>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              <span className="px-3 py-1 bg-slate-100 rounded-full text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                {template.config.width}x{template.config.height} cm
+                              </span>
+                              <span className="px-3 py-1 bg-emerald-50 rounded-full text-[10px] font-black uppercase tracking-widest text-emerald-600">
+                                {template.config.quantity} un
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => applyMarketTemplate(template)}
+                              className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center justify-center gap-2"
+                            >
+                              Usar este Modelo <ChevronRight size={16} />
+                            </button>
                           </div>
-                        )}
-                        {disabledReason && (
-                          <div className="absolute bottom-1 right-2">
-                            <Lock size={10} className="text-slate-400" />
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Bag Color */}
-                <div className="space-y-3">
-                  <label className="text-sm font-bold text-slate-600 flex items-center gap-2 uppercase tracking-wider">
-                    3. Cor da Sacola <Tooltip text="Escolha a cor base do material da sacola." />
-                  </label>
-                  <div className="flex flex-wrap gap-3">
-                    {[
-                      { id: 'white', name: 'Branca', color: '#f8fafc' },
-                      { id: 'kraft', name: 'Kraft/Pardo', color: '#e5d3b3' },
-                      { id: 'black', name: 'Preta', color: '#1a1a1a' },
-                      { id: 'cru', name: 'Cru/Natural', color: '#eae6d9' },
-                      { id: 'green', name: 'Verde', color: '#059669' },
-                      { id: 'color', name: 'Colorida', color: '#3b82f6' },
-                    ].map((color) => {
-                      const rules = MATERIAL_COMPATIBILITY[config.bagTypeId];
-                      const isDisabled = rules && !rules.colors.includes(color.id);
-                      
-                      return (
-                        <button
-                          key={color.id}
-                          disabled={isDisabled}
-                          onClick={() => setConfig(prev => ({ ...prev, bagColor: color.id }))}
-                          className={`px-4 py-2 rounded-xl border text-xs font-bold transition-all flex items-center gap-2 ${
-                            config.bagColor === color.id 
-                            ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500' 
-                            : isDisabled
-                              ? 'opacity-40 cursor-not-allowed bg-slate-50 border-slate-100'
-                              : 'border-slate-200 bg-white'
-                          }`}
-                        >
-                          <div className="w-4 h-4 rounded-full border border-slate-200" style={{ backgroundColor: color.color }} />
-                          {color.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Dimensions */}
-                <div className="space-y-4">
-                  <label className="text-sm font-bold text-slate-600 flex items-center gap-2 uppercase tracking-wider">
-                    3. Tamanhos Padrão <Tooltip text="P, M e G são tamanhos padrão. Você também pode definir medidas personalizadas para seu produto." />
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {bagPresets
-                      .filter(p => p.category === bagTypes.find(t => t.id === config.bagTypeId)?.category)
-                      .map(preset => (
-                        <button
-                          key={preset.id}
-                          onClick={() => applyPreset(preset)}
-                          className={`px-2 py-2 rounded-xl border text-[10px] font-black uppercase transition-all ${
-                            selectedPreset === preset.id 
-                            ? 'bg-emerald-600 text-white border-emerald-600' 
-                            : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
-                          }`}
-                        >
-                          {preset.name}
-                        </button>
-                      ))}
-                    <button
-                      onClick={() => setSelectedPreset('custom')}
-                      className={`px-2 py-2 rounded-xl border text-[10px] font-black uppercase transition-all ${
-                        selectedPreset === 'custom' 
-                        ? 'bg-slate-800 text-white border-slate-800' 
-                        : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
-                      }`}
-                    >
-                      Personalizado
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-3 pt-2">
-                    <div>
-                      <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">Largura</span>
-                      <input 
-                        type="number" 
-                        value={config.width}
-                        onChange={(e) => {
-                          setConfig(prev => ({ ...prev, width: Number(e.target.value) }));
-                          setSelectedPreset('custom');
-                        }}
-                        className="w-full px-3 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-sm font-bold"
-                      />
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">Altura</span>
-                      <input 
-                        type="number" 
-                        value={config.height}
-                        onChange={(e) => {
-                          setConfig(prev => ({ ...prev, height: Number(e.target.value) }));
-                          setSelectedPreset('custom');
-                        }}
-                        className="w-full px-3 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-sm font-bold"
-                      />
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">Lateral</span>
-                      <input 
-                        type="number" 
-                        value={config.side}
-                        onChange={(e) => {
-                          setConfig(prev => ({ ...prev, side: Number(e.target.value) }));
-                          setSelectedPreset('custom');
-                        }}
-                        className="w-full px-3 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-sm font-bold"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Quantity */}
-                <div className="space-y-4">
-                  <label className="text-sm font-bold text-slate-600 flex items-center gap-2 uppercase tracking-wider">
-                    4. Quantidade <Tooltip text="Quanto maior a quantidade, menor o preço unitário devido à diluição dos custos fixos de produção." />
-                  </label>
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-4 gap-2">
-                      {[500, 1000, 2000, 5000].map(q => (
-                        <button
-                          key={q}
-                          onClick={() => {
-                            setConfig(prev => ({ ...prev, quantity: q }));
-                            setCustomQty('');
-                          }}
-                          className={`py-2 rounded-xl border text-xs font-black transition-all ${
-                            config.quantity === q && !customQty
-                            ? 'bg-slate-800 text-white border-slate-800' 
-                            : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
-                          }`}
-                        >
-                          {q.toLocaleString()}
-                        </button>
+                        </motion.div>
                       ))}
                     </div>
-                    <div className="relative">
-                      <input 
-                        type="number" 
-                        placeholder="Outra quantidade..."
-                        value={customQty}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setCustomQty(val);
-                          if (val) setConfig(prev => ({ ...prev, quantity: Number(val) }));
-                        }}
-                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-sm font-bold pl-10"
-                      />
-                      <Calculator size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Colors */}
-                <div className="space-y-4">
-                  <label className="text-sm font-bold text-slate-600 flex items-center gap-2 uppercase tracking-wider">
-                    5. Cores <Tooltip text={TOOLTIPS.print_pantone} />
-                  </label>
-                  <div className="space-y-3">
-                    <select 
-                      value={config.colors}
-                      onChange={(e) => setConfig(prev => ({ ...prev, colors: e.target.value as any }))}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-sm font-bold appearance-none bg-white"
-                    >
-                      <option value="black">Preto (Monocromático) -10%</option>
-                      <option value="1">1 Cor (Padrão)</option>
-                      {MATERIAL_COMPATIBILITY[config.bagTypeId]?.printColors.includes('2') && <option value="2">2 Cores +8%</option>}
-                      {MATERIAL_COMPATIBILITY[config.bagTypeId]?.printColors.includes('3') && <option value="3">3 Cores +12%</option>}
-                      {MATERIAL_COMPATIBILITY[config.bagTypeId]?.printColors.includes('4') && <option value="4">4 Cores (Colorido) +15%</option>}
-                      {MATERIAL_COMPATIBILITY[config.bagTypeId]?.printColors.includes('pantone1') && <option value="pantone1">Pantone 1 Cor (Especial) +25%</option>}
-                      {MATERIAL_COMPATIBILITY[config.bagTypeId]?.printColors.includes('pantone2') && <option value="pantone2">Pantone 2 Cores (Especial) +35%</option>}
-                    </select>
-
-                    {config.colors.startsWith('pantone') && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="space-y-2"
-                      >
-                        <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">Código Pantone (ex: PMS 186C)</span>
-                        <input 
-                          type="text"
-                          placeholder="Insira o código Pantone..."
-                          value={config.pantoneCode || ''}
-                          onChange={(e) => setConfig(prev => ({ ...prev, pantoneCode: e.target.value }))}
-                          className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-sm font-bold"
-                        />
-                      </motion.div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Lamination */}
-                {bagTypes.find(t => t.id === config.bagTypeId)?.category === BagCategory.PAPER && (
-                  <div className="space-y-4">
-                    <label className="text-sm font-bold text-slate-600 flex items-center gap-2 uppercase tracking-wider">
-                      6. Acabamento <Tooltip text="Acabamentos protegem a sacola e aumentam o brilho ou dão um toque aveludado fosco." />
-                    </label>
-                    <select 
-                      value={config.lamination}
-                      onChange={(e) => setConfig(prev => ({ ...prev, lamination: e.target.value as any }))}
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-sm font-bold appearance-none bg-white"
-                    >
-                      <option value="none">Nenhum</option>
-                      <option value="gloss">Brilho +6%</option>
-                      <option value="matte">Fosca +8%</option>
-                      <option value="uv">UV Localizado +12%</option>
-                    </select>
                   </div>
                 )}
               </div>
-
-              {/* 7. Extras e Reforços */}
-              <div className="space-y-6 pt-4 border-t border-slate-100">
-                <label className="text-sm font-bold text-slate-600 flex items-center gap-2 uppercase tracking-wider">
-                  7. Extras e Reforços <Tooltip text="Reforços aumentam a durabilidade e o ilhós dá um toque de luxo às alças de cordão." />
-                </label>
-                
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <button
-                    disabled={!MATERIAL_COMPATIBILITY[config.bagTypeId]?.extras.includes('eyelet')}
-                    onClick={() => setConfig(prev => ({ ...prev, hasEyelet: !prev.hasEyelet }))}
-                    className={`p-4 rounded-2xl border text-left transition-all relative ${
-                      config.hasEyelet ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-white'
-                    } ${!MATERIAL_COMPATIBILITY[config.bagTypeId]?.extras.includes('eyelet') ? 'opacity-40 cursor-not-allowed' : ''}`}
-                  >
-                    <span className="block text-[10px] font-black text-slate-400 uppercase mb-1">Ilhós</span>
-                    <span className="text-xs font-bold">{config.hasEyelet ? 'Sim' : 'Não'}</span>
-                    {!MATERIAL_COMPATIBILITY[config.bagTypeId]?.extras.includes('eyelet') && <Lock size={10} className="absolute bottom-2 right-2 text-slate-400" />}
-                  </button>
-
-                  <button
-                    disabled={!MATERIAL_COMPATIBILITY[config.bagTypeId]?.extras.includes('bottom')}
-                    onClick={() => setConfig(prev => ({ ...prev, hasBottomReinforcement: !prev.hasBottomReinforcement }))}
-                    className={`p-4 rounded-2xl border text-left transition-all relative ${
-                      config.hasBottomReinforcement ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-white'
-                    } ${!MATERIAL_COMPATIBILITY[config.bagTypeId]?.extras.includes('bottom') ? 'opacity-40 cursor-not-allowed' : ''}`}
-                  >
-                    <span className="block text-[10px] font-black text-slate-400 uppercase mb-1">Ref. Fundo</span>
-                    <span className="text-xs font-bold">{config.hasBottomReinforcement ? 'Sim' : 'Não'}</span>
-                    {!MATERIAL_COMPATIBILITY[config.bagTypeId]?.extras.includes('bottom') && <Lock size={10} className="absolute bottom-2 right-2 text-slate-400" />}
-                  </button>
-
-                  <button
-                    disabled={!MATERIAL_COMPATIBILITY[config.bagTypeId]?.extras.includes('mouth')}
-                    onClick={() => setConfig(prev => ({ ...prev, hasMouthReinforcement: !prev.hasMouthReinforcement }))}
-                    className={`p-4 rounded-2xl border text-left transition-all relative ${
-                      config.hasMouthReinforcement ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-white'
-                    } ${!MATERIAL_COMPATIBILITY[config.bagTypeId]?.extras.includes('mouth') ? 'opacity-40 cursor-not-allowed' : ''}`}
-                  >
-                    <span className="block text-[10px] font-black text-slate-400 uppercase mb-1">Ref. Boca</span>
-                    <span className="text-xs font-bold">{config.hasMouthReinforcement ? 'Sim' : 'Não'}</span>
-                    {!MATERIAL_COMPATIBILITY[config.bagTypeId]?.extras.includes('mouth') && <Lock size={10} className="absolute bottom-2 right-2 text-slate-400" />}
-                  </button>
-
-                  <button
-                    disabled={!MATERIAL_COMPATIBILITY[config.bagTypeId]?.extras.includes('diecut')}
-                    onClick={() => setConfig(prev => ({ ...prev, isExclusiveDieCut: !prev.isExclusiveDieCut }))}
-                    className={`p-4 rounded-2xl border text-left transition-all relative ${
-                      config.isExclusiveDieCut ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-white'
-                    } ${!MATERIAL_COMPATIBILITY[config.bagTypeId]?.extras.includes('diecut') ? 'opacity-40 cursor-not-allowed' : ''}`}
-                  >
-                    <span className="block text-[10px] font-black text-slate-400 uppercase mb-1">Faca Excl.</span>
-                    <span className="text-xs font-bold">{config.isExclusiveDieCut ? 'Sim' : 'Não'}</span>
-                    {!MATERIAL_COMPATIBILITY[config.bagTypeId]?.extras.includes('diecut') && <Lock size={10} className="absolute bottom-2 right-2 text-slate-400" />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-slate-100">
-                {/* 8. Tipo de Impressão */}
-                <div className="space-y-4">
-                  <label className="text-sm font-bold text-slate-600 flex items-center gap-2 uppercase tracking-wider">
-                    8. Tipo de Impressão <Tooltip text="Escolha se deseja imprimir apenas na frente ou em ambos os lados para maior visibilidade." />
-                  </label>
-                  <select 
-                    value={config.printingSides}
-                    onChange={(e) => setConfig(prev => ({ ...prev, printingSides: e.target.value as any }))}
-                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-sm font-bold appearance-none bg-white"
-                  >
-                    <option value="front">Apenas Frente</option>
-                    {(() => {
-                      const isPaper = bagTypes.find(t => t.id === config.bagTypeId)?.category === BagCategory.PAPER;
-                      const isEcologica = config.bagTypeId === 'ecologica';
-                      if (isPaper || isEcologica) {
-                        return <option value="both">Frente e Verso (1.6x)</option>;
-                      }
-                      return null;
-                    })()}
-                  </select>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Recommendations */}
-          <AnimatePresence>
-            {recommendations.length > 0 && (
-              <motion.section 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-emerald-50 rounded-3xl border border-emerald-100 p-6 space-y-4"
-              >
-                <div className="flex items-center gap-2 text-emerald-800 font-black uppercase text-[10px] tracking-widest">
-                  <TrendingDown size={14} />
-                  Dicas de Economia
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {recommendations.map((rec, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setConfig(rec.config)}
-                      className="bg-white p-4 rounded-2xl border border-emerald-200 hover:border-emerald-400 transition-all text-left group shadow-sm"
-                    >
-                      <span className="block text-[10px] font-bold text-slate-400 uppercase mb-1">{rec.label}</span>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-lg font-black text-emerald-700">R$ {rec.price.toFixed(2)}</span>
-                        <span className="text-[10px] text-slate-400 font-bold">/un</span>
+            </motion.div>
+          ) : (
+            <motion.div key="calculator" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {/* Configuration Column */}
+                <div className="lg:col-span-7 space-y-6">
+                  <section className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Layers size={18} className="text-emerald-600" />
+                        <h2 className="font-bold">Configuração do Produto</h2>
                       </div>
-                      <div className="mt-2 flex items-center text-[10px] font-black text-emerald-600 uppercase tracking-tight">
-                        Economize R$ {rec.diff.toFixed(2)} <ChevronRight size={10} className="ml-1 group-hover:translate-x-1 transition-transform" />
+                      <div className={`px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 ${productInsight.bg} ${productInsight.color} ${productInsight.border}`}>
+                        {productInsight.icon} {productInsight.label}
                       </div>
-                    </button>
-                  ))}
-                </div>
-              </motion.section>
-            )}
-          </AnimatePresence>
-        </div>
+                    </div>
 
-        {/* Result Column */}
-        <div className="lg:col-span-5 space-y-6">
-          <section className="bg-slate-900 rounded-[2.5rem] shadow-2xl p-8 text-white md:sticky md:top-24 border border-white/5">
-            <div className="space-y-8">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-slate-500 font-black uppercase text-[10px] tracking-widest mb-2">Preço Unitário</h3>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-5xl font-black tracking-tighter">R$ {currentResult.unitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    <span className="text-slate-600 font-bold text-sm">/un</span>
+                    <div className="p-6 space-y-8">
+                      {/* Bag Type Selection */}
+                      <div className="space-y-3">
+                        <label className="text-sm font-bold text-slate-600 flex items-center gap-2 uppercase tracking-wider">
+                          1. Tipo e Material <Tooltip text="Escolha o material ideal para sua marca. Papéis transmitem sofisticação e plásticos oferecem praticidade." />
+                        </label>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          {bagTypes.map((type) => {
+                            return (
+                              <button
+                                key={type.id}
+                                onClick={() => setConfig(prev => ({ ...prev, bagTypeId: type.id }))}
+                                className={`p-4 rounded-2xl border text-left transition-all relative overflow-hidden group ${config.bagTypeId === type.id
+                                    ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500'
+                                    : 'border-slate-200 hover:border-slate-300 bg-white'
+                                  }`}
+                              >
+                                <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{type.category}</span>
+                                <span className={`block text-sm font-bold leading-tight ${config.bagTypeId === type.id ? 'text-emerald-700' : 'text-slate-700'}`}>
+                                  {type.name}
+                                </span>
+                                {config.bagTypeId === type.id && (
+                                  <div className="absolute top-2 right-2 text-emerald-500">
+                                    <Check size={14} />
+                                  </div>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Material Info Card */}
+                        <AnimatePresence mode="wait">
+                          {bagTypes.find(t => t.id === config.bagTypeId) && (
+                            <motion.div
+                              key={config.bagTypeId}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -10 }}
+                              className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2"
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="p-2 bg-white rounded-lg border border-slate-200 text-emerald-600">
+                                  <Info size={16} />
+                                </div>
+                                <div>
+                                  <p className="text-xs font-bold text-slate-800 leading-relaxed">
+                                    {bagTypes.find(t => t.id === config.bagTypeId)?.description}
+                                  </p>
+                                  <p className="text-[11px] font-medium text-slate-500 mt-1 leading-relaxed italic">
+                                    {bagTypes.find(t => t.id === config.bagTypeId)?.purpose}
+                                  </p>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+
+                      {/* Handle Selection */}
+                      <div className="space-y-3">
+                        <label className="text-sm font-bold text-slate-600 flex items-center gap-2 uppercase tracking-wider">
+                          2. Tipo de Alça <Tooltip text="A alça define o conforto e o estilo da sacola. Cordões são mais premium, enquanto alças de papel são sustentáveis." />
+                        </label>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          {handleTypes.map((handle) => {
+                            const rules = MATERIAL_COMPATIBILITY[config.bagTypeId];
+                            const isPaper = bagTypes.find(t => t.id === config.bagTypeId)?.category === BagCategory.PAPER;
+                            const cordaoHandles = ['nylon', 'cotton', 'gorgurao', 'ribbon', 'paper'];
+
+                            let disabledReason = null;
+                            if (config.bagTypeId === 'camiseta' && handle.id !== 'none') disabledReason = "Não permitido em camiseta";
+                            if (config.bagTypeId === 'palhaco' && handle.id !== 'none') disabledReason = "Não permitido em boca de palhaço";
+                            if (config.bagTypeId === 'tnt' && !['none', 'tnt_handle'].includes(handle.id)) disabledReason = "Apenas TNT ou Sem Alça";
+                            if (config.bagTypeId === 'algodao' && handle.id !== 'algodao_handle') disabledReason = "Apenas Alça de Algodão";
+                            if (config.bagTypeId === 'alca_fita' && handle.id !== 'fita_soldada') disabledReason = "Apenas Alça Fita Soldada";
+                            if (!isPaper && cordaoHandles.includes(handle.id)) {
+                              disabledReason = "Apenas para papel";
+                            }
+
+                            return (
+                              <button
+                                key={handle.id}
+                                disabled={!!disabledReason}
+                                title={disabledReason || ''}
+                                onClick={() => setConfig(prev => ({ ...prev, handleTypeId: handle.id }))}
+                                className={`p-4 rounded-2xl border text-left transition-all relative overflow-hidden group ${config.handleTypeId === handle.id
+                                    ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500'
+                                    : !!disabledReason
+                                      ? 'opacity-40 cursor-not-allowed bg-slate-50 border-slate-100'
+                                      : 'border-slate-200 hover:border-slate-300 bg-white'
+                                  }`}
+                              >
+                                <span className={`block text-sm font-bold leading-tight ${config.handleTypeId === handle.id ? 'text-emerald-700' : 'text-slate-700'}`}>
+                                  {handle.name}
+                                </span>
+                                {config.handleTypeId === handle.id && (
+                                  <div className="absolute top-2 right-2 text-emerald-500">
+                                    <Check size={14} />
+                                  </div>
+                                )}
+                                {disabledReason && (
+                                  <div className="absolute bottom-1 right-2">
+                                    <Lock size={10} className="text-slate-400" />
+                                  </div>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* Bag Color */}
+                        <div className="space-y-3">
+                          <label className="text-sm font-bold text-slate-600 flex items-center gap-2 uppercase tracking-wider">
+                            3. Cor da Sacola <Tooltip text="Escolha a cor base do material da sacola." />
+                          </label>
+                          <div className="flex flex-wrap gap-3">
+                            {[
+                              { id: 'white', name: 'Branca', color: '#f8fafc' },
+                              { id: 'kraft', name: 'Kraft/Pardo', color: '#e5d3b3' },
+                              { id: 'black', name: 'Preta', color: '#1a1a1a' },
+                              { id: 'cru', name: 'Cru/Natural', color: '#eae6d9' },
+                              { id: 'green', name: 'Verde', color: '#059669' },
+                              { id: 'color', name: 'Colorida', color: '#3b82f6' },
+                            ].map((color) => {
+                              const rules = MATERIAL_COMPATIBILITY[config.bagTypeId];
+                              const isDisabled = rules && !rules.colors.includes(color.id);
+
+                              return (
+                                <button
+                                  key={color.id}
+                                  disabled={isDisabled}
+                                  onClick={() => setConfig(prev => ({ ...prev, bagColor: color.id }))}
+                                  className={`px-4 py-2 rounded-xl border text-xs font-bold transition-all flex items-center gap-2 ${config.bagColor === color.id
+                                      ? 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500'
+                                      : isDisabled
+                                        ? 'opacity-40 cursor-not-allowed bg-slate-50 border-slate-100'
+                                        : 'border-slate-200 bg-white'
+                                    }`}
+                                >
+                                  <div className="w-4 h-4 rounded-full border border-slate-200" style={{ backgroundColor: color.color }} />
+                                  {color.name}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Dimensions */}
+                        <div className="space-y-4">
+                          <label className="text-sm font-bold text-slate-600 flex items-center gap-2 uppercase tracking-wider">
+                            3. Tamanhos Padrão <Tooltip text="P, M e G são tamanhos padrão. Você também pode definir medidas personalizadas para seu produto." />
+                          </label>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            {bagPresets
+                              .filter(p => p.category === bagTypes.find(t => t.id === config.bagTypeId)?.category)
+                              .map(preset => (
+                                <button
+                                  key={preset.id}
+                                  onClick={() => applyPreset(preset)}
+                                  className={`px-2 py-2 rounded-xl border text-[10px] font-black uppercase transition-all ${selectedPreset === preset.id
+                                      ? 'bg-emerald-600 text-white border-emerald-600'
+                                      : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
+                                    }`}
+                                >
+                                  {preset.name}
+                                </button>
+                              ))}
+                            <button
+                              onClick={() => setSelectedPreset('custom')}
+                              className={`px-2 py-2 rounded-xl border text-[10px] font-black uppercase transition-all ${selectedPreset === 'custom'
+                                  ? 'bg-slate-800 text-white border-slate-800'
+                                  : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
+                                }`}
+                            >
+                              Personalizado
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-3 pt-2">
+                            <div>
+                              <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">Largura</span>
+                              <input
+                                type="number"
+                                value={config.width}
+                                onChange={(e) => {
+                                  setConfig(prev => ({ ...prev, width: Number(e.target.value) }));
+                                  setSelectedPreset('custom');
+                                }}
+                                className="w-full px-3 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-sm font-bold"
+                              />
+                            </div>
+                            <div>
+                              <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">Altura</span>
+                              <input
+                                type="number"
+                                value={config.height}
+                                onChange={(e) => {
+                                  setConfig(prev => ({ ...prev, height: Number(e.target.value) }));
+                                  setSelectedPreset('custom');
+                                }}
+                                className="w-full px-3 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-sm font-bold"
+                              />
+                            </div>
+                            <div>
+                              <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">Lateral</span>
+                              <input
+                                type="number"
+                                value={config.side}
+                                onChange={(e) => {
+                                  setConfig(prev => ({ ...prev, side: Number(e.target.value) }));
+                                  setSelectedPreset('custom');
+                                }}
+                                className="w-full px-3 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-sm font-bold"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Quantity */}
+                        <div className="space-y-4">
+                          <label className="text-sm font-bold text-slate-600 flex items-center gap-2 uppercase tracking-wider">
+                            4. Quantidade <Tooltip text="Quanto maior a quantidade, menor o preço unitário devido à diluição dos custos fixos de produção." />
+                          </label>
+                          <div className="space-y-3">
+                            <div className="grid grid-cols-4 gap-2">
+                              {[500, 1000, 2000, 5000].map(q => (
+                                <button
+                                  key={q}
+                                  onClick={() => {
+                                    setConfig(prev => ({ ...prev, quantity: q }));
+                                    setCustomQty('');
+                                  }}
+                                  className={`py-2 rounded-xl border text-xs font-black transition-all ${config.quantity === q && !customQty
+                                      ? 'bg-slate-800 text-white border-slate-800'
+                                      : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                                    }`}
+                                >
+                                  {q.toLocaleString()}
+                                </button>
+                              ))}
+                            </div>
+                            <div className="relative">
+                              <input
+                                type="number"
+                                placeholder="Outra quantidade..."
+                                value={customQty}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setCustomQty(val);
+                                  if (val) setConfig(prev => ({ ...prev, quantity: Number(val) }));
+                                }}
+                                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-sm font-bold pl-10"
+                              />
+                              <Calculator size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* Colors */}
+                        <div className="space-y-4">
+                          <label className="text-sm font-bold text-slate-600 flex items-center gap-2 uppercase tracking-wider">
+                            5. Cores <Tooltip text={TOOLTIPS.print_pantone} />
+                          </label>
+                          <div className="space-y-3">
+                            <select
+                              value={config.colors}
+                              onChange={(e) => setConfig(prev => ({ ...prev, colors: e.target.value as any }))}
+                              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-sm font-bold appearance-none bg-white"
+                            >
+                              <option value="black">Preto (Monocromático) -10%</option>
+                              <option value="1">1 Cor (Padrão)</option>
+                              {MATERIAL_COMPATIBILITY[config.bagTypeId]?.printColors.includes('2') && <option value="2">2 Cores +8%</option>}
+                              {MATERIAL_COMPATIBILITY[config.bagTypeId]?.printColors.includes('3') && <option value="3">3 Cores +12%</option>}
+                              {MATERIAL_COMPATIBILITY[config.bagTypeId]?.printColors.includes('4') && <option value="4">4 Cores (Colorido) +15%</option>}
+                              {MATERIAL_COMPATIBILITY[config.bagTypeId]?.printColors.includes('pantone1') && <option value="pantone1">Pantone 1 Cor (Especial) +25%</option>}
+                              {MATERIAL_COMPATIBILITY[config.bagTypeId]?.printColors.includes('pantone2') && <option value="pantone2">Pantone 2 Cores (Especial) +35%</option>}
+                            </select>
+
+                            {config.colors.startsWith('pantone') && (
+                              <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="space-y-2"
+                              >
+                                <span className="text-[10px] font-black text-slate-400 uppercase block mb-1">Código Pantone (ex: PMS 186C)</span>
+                                <input
+                                  type="text"
+                                  placeholder="Insira o código Pantone..."
+                                  value={config.pantoneCode || ''}
+                                  onChange={(e) => setConfig(prev => ({ ...prev, pantoneCode: e.target.value }))}
+                                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-sm font-bold"
+                                />
+                              </motion.div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Lamination */}
+                        {bagTypes.find(t => t.id === config.bagTypeId)?.category === BagCategory.PAPER && (
+                          <div className="space-y-4">
+                            <label className="text-sm font-bold text-slate-600 flex items-center gap-2 uppercase tracking-wider">
+                              6. Acabamento <Tooltip text="Acabamentos protegem a sacola e aumentam o brilho ou dão um toque aveludado fosco." />
+                            </label>
+                            <select
+                              value={config.lamination}
+                              onChange={(e) => setConfig(prev => ({ ...prev, lamination: e.target.value as any }))}
+                              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-sm font-bold appearance-none bg-white"
+                            >
+                              <option value="none">Nenhum</option>
+                              <option value="gloss">Brilho +6%</option>
+                              <option value="matte">Fosca +8%</option>
+                              <option value="uv">UV Localizado +12%</option>
+                            </select>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 7. Extras e Reforços */}
+                      <div className="space-y-6 pt-4 border-t border-slate-100">
+                        <label className="text-sm font-bold text-slate-600 flex items-center gap-2 uppercase tracking-wider">
+                          7. Extras e Reforços <Tooltip text="Reforços aumentam a durabilidade e o ilhós dá um toque de luxo às alças de cordão." />
+                        </label>
+
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <button
+                            disabled={!MATERIAL_COMPATIBILITY[config.bagTypeId]?.extras.includes('eyelet')}
+                            onClick={() => setConfig(prev => ({ ...prev, hasEyelet: !prev.hasEyelet }))}
+                            className={`p-4 rounded-2xl border text-left transition-all relative ${config.hasEyelet ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-white'
+                              } ${!MATERIAL_COMPATIBILITY[config.bagTypeId]?.extras.includes('eyelet') ? 'opacity-40 cursor-not-allowed' : ''}`}
+                          >
+                            <span className="block text-[10px] font-black text-slate-400 uppercase mb-1">Ilhós</span>
+                            <span className="text-xs font-bold">{config.hasEyelet ? 'Sim' : 'Não'}</span>
+                            {!MATERIAL_COMPATIBILITY[config.bagTypeId]?.extras.includes('eyelet') && <Lock size={10} className="absolute bottom-2 right-2 text-slate-400" />}
+                          </button>
+
+                          <button
+                            disabled={!MATERIAL_COMPATIBILITY[config.bagTypeId]?.extras.includes('bottom')}
+                            onClick={() => setConfig(prev => ({ ...prev, hasBottomReinforcement: !prev.hasBottomReinforcement }))}
+                            className={`p-4 rounded-2xl border text-left transition-all relative ${config.hasBottomReinforcement ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-white'
+                              } ${!MATERIAL_COMPATIBILITY[config.bagTypeId]?.extras.includes('bottom') ? 'opacity-40 cursor-not-allowed' : ''}`}
+                          >
+                            <span className="block text-[10px] font-black text-slate-400 uppercase mb-1">Ref. Fundo</span>
+                            <span className="text-xs font-bold">{config.hasBottomReinforcement ? 'Sim' : 'Não'}</span>
+                            {!MATERIAL_COMPATIBILITY[config.bagTypeId]?.extras.includes('bottom') && <Lock size={10} className="absolute bottom-2 right-2 text-slate-400" />}
+                          </button>
+
+                          <button
+                            disabled={!MATERIAL_COMPATIBILITY[config.bagTypeId]?.extras.includes('mouth')}
+                            onClick={() => setConfig(prev => ({ ...prev, hasMouthReinforcement: !prev.hasMouthReinforcement }))}
+                            className={`p-4 rounded-2xl border text-left transition-all relative ${config.hasMouthReinforcement ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-white'
+                              } ${!MATERIAL_COMPATIBILITY[config.bagTypeId]?.extras.includes('mouth') ? 'opacity-40 cursor-not-allowed' : ''}`}
+                          >
+                            <span className="block text-[10px] font-black text-slate-400 uppercase mb-1">Ref. Boca</span>
+                            <span className="text-xs font-bold">{config.hasMouthReinforcement ? 'Sim' : 'Não'}</span>
+                            {!MATERIAL_COMPATIBILITY[config.bagTypeId]?.extras.includes('mouth') && <Lock size={10} className="absolute bottom-2 right-2 text-slate-400" />}
+                          </button>
+
+                          <button
+                            disabled={!MATERIAL_COMPATIBILITY[config.bagTypeId]?.extras.includes('diecut')}
+                            onClick={() => setConfig(prev => ({ ...prev, isExclusiveDieCut: !prev.isExclusiveDieCut }))}
+                            className={`p-4 rounded-2xl border text-left transition-all relative ${config.isExclusiveDieCut ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-white'
+                              } ${!MATERIAL_COMPATIBILITY[config.bagTypeId]?.extras.includes('diecut') ? 'opacity-40 cursor-not-allowed' : ''}`}
+                          >
+                            <span className="block text-[10px] font-black text-slate-400 uppercase mb-1">Faca Excl.</span>
+                            <span className="text-xs font-bold">{config.isExclusiveDieCut ? 'Sim' : 'Não'}</span>
+                            {!MATERIAL_COMPATIBILITY[config.bagTypeId]?.extras.includes('diecut') && <Lock size={10} className="absolute bottom-2 right-2 text-slate-400" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-slate-100">
+                        {/* 8. Tipo de Impressão */}
+                        <div className="space-y-4">
+                          <label className="text-sm font-bold text-slate-600 flex items-center gap-2 uppercase tracking-wider">
+                            8. Tipo de Impressão <Tooltip text="Escolha se deseja imprimir apenas na frente ou em ambos os lados para maior visibilidade." />
+                          </label>
+                          <select
+                            value={config.printingSides}
+                            onChange={(e) => setConfig(prev => ({ ...prev, printingSides: e.target.value as any }))}
+                            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-sm font-bold appearance-none bg-white"
+                          >
+                            <option value="front">Apenas Frente</option>
+                            {(() => {
+                              const isPaper = bagTypes.find(t => t.id === config.bagTypeId)?.category === BagCategory.PAPER;
+                              const isEcologica = config.bagTypeId === 'ecologica';
+                              if (isPaper || isEcologica) {
+                                return <option value="both">Frente e Verso (1.6x)</option>;
+                              }
+                              return null;
+                            })()}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* Recommendations */}
+                  <AnimatePresence>
+                    {recommendations.length > 0 && (
+                      <motion.section
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="bg-emerald-50 rounded-3xl border border-emerald-100 p-6 space-y-4"
+                      >
+                        <div className="flex items-center gap-2 text-emerald-800 font-black uppercase text-[10px] tracking-widest">
+                          <TrendingDown size={14} />
+                          Dicas de Economia
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {recommendations.map((rec, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => setConfig(rec.config)}
+                              className="bg-white p-4 rounded-2xl border border-emerald-200 hover:border-emerald-400 transition-all text-left group shadow-sm"
+                            >
+                              <span className="block text-[10px] font-bold text-slate-400 uppercase mb-1">{rec.label}</span>
+                              <div className="flex items-baseline gap-1">
+                                <span className="text-lg font-black text-emerald-700">R$ {rec.price.toFixed(2)}</span>
+                                <span className="text-[10px] text-slate-400 font-bold">/un</span>
+                              </div>
+                              <div className="mt-2 flex items-center text-[10px] font-black text-emerald-600 uppercase tracking-tight">
+                                Economize R$ {rec.diff.toFixed(2)} <ChevronRight size={10} className="ml-1 group-hover:translate-x-1 transition-transform" />
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </motion.section>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Result Column */}
+                <div className="lg:col-span-5 space-y-6">
+                  <section className="bg-slate-900 rounded-[2.5rem] shadow-2xl p-8 text-white md:sticky md:top-24 border border-white/5">
+                    <div className="space-y-8">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="text-slate-500 font-black uppercase text-[10px] tracking-widest mb-2">Preço Unitário</h3>
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-5xl font-black tracking-tighter">R$ {currentResult.unitPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                            <span className="text-slate-600 font-bold text-sm">/un</span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <h3 className="text-slate-500 font-black uppercase text-[10px] tracking-widest mb-2">Total do Lote</h3>
+                          <div className="text-2xl font-black text-emerald-400 tracking-tight">R$ {currentResult.totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        </div>
+                      </div>
+
+                      <div className="h-px bg-white/5" />
+
+                      {/* Bag Preview */}
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Visualização Prévia</h4>
+                        </div>
+
+                        <MockupPreview
+                          result={currentResult}
+                          images={loadedModelImages}
+                          onClearImages={() => setLoadedModelImages(null)}
+                        />
+                      </div>
+
+                      <div className="h-px bg-white/5" />
+
+                      <div className="space-y-4">
+                        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Detalhamento Técnico</h4>
+                        <div className="grid grid-cols-2 gap-y-4 text-sm">
+                          <div className="text-slate-500 font-medium">Material</div>
+                          <div className="text-right font-bold">{currentResult.bagType.name}</div>
+
+                          <div className="text-slate-500 font-medium">Alça</div>
+                          <div className="text-right font-bold">{currentResult.handleType.name}</div>
+
+                          <div className="text-slate-500 font-medium">Medida</div>
+                          <div className="text-right font-bold">{config.width}x{config.height}x{config.side} cm</div>
+
+                          <div className="text-slate-500 font-medium">Cores</div>
+                          <div className="text-right font-bold">{config.colors === 'black' ? 'Preto' : config.colors + ' cor(es)'}</div>
+
+                          <div className="text-slate-500 font-medium">Acabamento</div>
+                          <div className="text-right font-bold capitalize">{config.lamination === 'none' ? 'Nenhum' : config.lamination}</div>
+
+                          <div className="text-slate-500 font-medium">Impressão</div>
+                          <div className="text-right font-bold">{config.printingSides === 'both' ? 'Frente e Verso' : 'Frente'}</div>
+
+                          <div className="text-slate-500 font-medium">Extras</div>
+                          <div className="text-right font-bold text-[10px]">
+                            {[
+                              config.hasEyelet ? 'Ilhós' : null,
+                              config.hasBottomReinforcement ? 'Ref. Fundo' : null,
+                              config.hasMouthReinforcement ? 'Ref. Boca' : null,
+                              config.isExclusiveDieCut ? 'Faca Excl.' : null
+                            ].filter(Boolean).join(', ') || 'Nenhum'}
+                          </div>
+
+                          <div className="text-slate-500 font-medium">Quantidade</div>
+                          <div className="text-right font-bold">{config.quantity.toLocaleString()} un</div>
+                        </div>
+                      </div>
+
+                      <div className="bg-white/5 rounded-3xl p-5 flex items-start gap-3 border border-white/5">
+                        <Info size={18} className="text-emerald-400 mt-0.5 shrink-0" />
+                        <p className="text-[11px] text-slate-400 leading-relaxed font-medium">
+                          Valores calculados com margem de lucro de {(profitMargin * 100 - 100).toFixed(0)}%. Prazo de entrega sujeito a alteração conforme demanda da fábrica.
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col gap-3">
+                        <button
+                          onClick={handleAddToBudget}
+                          className="w-full py-5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-[2rem] font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all shadow-xl shadow-emerald-500/20"
+                        >
+                          <Plus size={20} /> Adicionar ao Orçamento
+                        </button>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button
+                            onClick={handleCopy}
+                            className={`py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${copied
+                                ? 'bg-emerald-500 text-white'
+                                : 'bg-white text-slate-900 hover:bg-slate-100'
+                              }`}
+                          >
+                            {copied ? <Check size={16} /> : <Copy size={16} />} {copied ? 'Copiado' : 'Texto'}
+                          </button>
+                          <button
+                            onClick={generatePDF}
+                            className="py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all"
+                          >
+                            <FileText size={16} /> PDF
+                          </button>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setIsSavingModel(true);
+                            setEditingConfig({ ...config });
+                          }}
+                          className="w-full py-4 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-emerald-100 transition-all"
+                        >
+                          <Save size={16} /> Salvar como Modelo
+                        </button>
+                      </div>
+                    </div>
+                  </section>
+
+                  <div className="bg-white rounded-3xl p-6 border border-slate-200 text-center shadow-sm">
+                    <p className="text-xs text-slate-500 font-medium">
+                      Precisa de ajuda com o design? <br />
+                      <button className="text-emerald-600 font-black uppercase text-[10px] tracking-widest hover:underline mt-2">Solicitar Arte Grátis</button>
+                    </p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <h3 className="text-slate-500 font-black uppercase text-[10px] tracking-widest mb-2">Total do Lote</h3>
-                  <div className="text-2xl font-black text-emerald-400 tracking-tight">R$ {currentResult.totalPrice.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                </div>
               </div>
-
-              <div className="h-px bg-white/5" />
-
-              {/* Bag Preview */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Visualização Prévia</h4>
-                </div>
-
-                <MockupPreview 
-                  result={currentResult} 
-                  images={loadedModelImages}
-                  onClearImages={() => setLoadedModelImages(null)}
-                />
-              </div>
-
-              <div className="h-px bg-white/5" />
-
-              <div className="space-y-4">
-                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Detalhamento Técnico</h4>
-                <div className="grid grid-cols-2 gap-y-4 text-sm">
-                  <div className="text-slate-500 font-medium">Material</div>
-                  <div className="text-right font-bold">{currentResult.bagType.name}</div>
-                  
-                  <div className="text-slate-500 font-medium">Alça</div>
-                  <div className="text-right font-bold">{currentResult.handleType.name}</div>
-                  
-                  <div className="text-slate-500 font-medium">Medida</div>
-                  <div className="text-right font-bold">{config.width}x{config.height}x{config.side} cm</div>
-                  
-                  <div className="text-slate-500 font-medium">Cores</div>
-                  <div className="text-right font-bold">{config.colors === 'black' ? 'Preto' : config.colors + ' cor(es)'}</div>
-                  
-                  <div className="text-slate-500 font-medium">Acabamento</div>
-                  <div className="text-right font-bold capitalize">{config.lamination === 'none' ? 'Nenhum' : config.lamination}</div>
-
-                  <div className="text-slate-500 font-medium">Impressão</div>
-                  <div className="text-right font-bold">{config.printingSides === 'both' ? 'Frente e Verso' : 'Frente'}</div>
-
-                  <div className="text-slate-500 font-medium">Extras</div>
-                  <div className="text-right font-bold text-[10px]">
-                    {[
-                      config.hasEyelet ? 'Ilhós' : null,
-                      config.hasBottomReinforcement ? 'Ref. Fundo' : null,
-                      config.hasMouthReinforcement ? 'Ref. Boca' : null,
-                      config.isExclusiveDieCut ? 'Faca Excl.' : null
-                    ].filter(Boolean).join(', ') || 'Nenhum'}
-                  </div>
-                  
-                  <div className="text-slate-500 font-medium">Quantidade</div>
-                  <div className="text-right font-bold">{config.quantity.toLocaleString()} un</div>
-                </div>
-              </div>
-
-              <div className="bg-white/5 rounded-3xl p-5 flex items-start gap-3 border border-white/5">
-                <Info size={18} className="text-emerald-400 mt-0.5 shrink-0" />
-                <p className="text-[11px] text-slate-400 leading-relaxed font-medium">
-                  Valores calculados com margem de lucro de {(profitMargin * 100 - 100).toFixed(0)}%. Prazo de entrega sujeito a alteração conforme demanda da fábrica.
-                </p>
-              </div>
-
-              <div className="flex flex-col gap-3">
-                <button 
-                  onClick={handleCopy}
-                  className={`w-full py-5 rounded-3xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all active:scale-[0.98] ${
-                    copied 
-                    ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' 
-                    : 'bg-white text-slate-900 hover:bg-slate-100 shadow-xl shadow-white/5'
-                  }`}
-                >
-                  {copied ? (
-                    <>
-                      <Check size={20} /> Copiado!
-                    </>
-                  ) : (
-                    <>
-                      <Copy size={20} /> Copiar Orçamento
-                    </>
-                  )}
-                </button>
-                <button 
-                  onClick={generatePDF}
-                  className="w-full py-5 bg-slate-900 text-white rounded-3xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all hover:bg-emerald-600 shadow-xl shadow-slate-900/10"
-                >
-                  <FileText size={20} /> Gerar PDF
-                </button>
-                <button 
-                  onClick={() => {
-                    setIsSavingModel(true);
-                    setEditingConfig({ ...config });
-                  }}
-                  className="w-full py-5 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-3xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all hover:bg-emerald-100 shadow-xl shadow-emerald-500/5"
-                >
-                  <Save size={20} /> Salvar Modelo
-                </button>
-              </div>
-            </div>
-          </section>
-
-          <div className="bg-white rounded-3xl p-6 border border-slate-200 text-center shadow-sm">
-            <p className="text-xs text-slate-500 font-medium">
-              Precisa de ajuda com o design? <br />
-              <button className="text-emerald-600 font-black uppercase text-[10px] tracking-widest hover:underline mt-2">Solicitar Arte Grátis</button>
-            </p>
-          </div>
-        </div>
-      </div>
-    )}{/* end views */}
-  </main>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </main>
 
       <footer className="max-w-7xl mx-auto px-4 py-12 border-t border-slate-200 mt-12">
         <div className="flex flex-col md:flex-row justify-between items-center gap-6">

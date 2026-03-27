@@ -77,3 +77,54 @@ export interface Recommendation {
   diff: number;
   config: QuoteConfig;
 }
+
+export interface Client {
+  id: string;
+  name: string;
+  company: string;
+  phone: string;
+  email: string;
+  notes: string;
+  createdAt: string;
+}
+
+export interface BudgetItemSnapshot {
+  material?: string;
+  size?: string;
+  finish?: string;
+  printing?: string;
+  config?: QuoteConfig;
+  // Manual fields
+  sizePreset?: string;
+  sizeW?: string;
+  sizeH?: string;
+  sizeD?: string;
+  handle?: string;
+  finishing?: string;
+  extras?: string;
+}
+
+export interface BudgetItem {
+  id: string;
+  type: 'catalog' | 'manual';
+  name: string;
+  description: string;
+  quantity: number;
+  unitCost: number;
+  unitPrice: number;
+  subtotal: number;
+  snapshot?: BudgetItemSnapshot;
+}
+
+export interface Budget {
+  id: string;
+  clientId?: string;
+  origin: 'calculator' | 'template' | 'manual';
+  status: 'draft' | 'sent' | 'approved' | 'lost';
+  date: string;
+  items: BudgetItem[];
+  totalValue: number;
+  totalCost: number;
+  margin: number;
+  updatedAt: string;
+}
