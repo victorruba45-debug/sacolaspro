@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Plus, Trash2, Copy, Check, FileText, ChevronDown, ChevronUp,
   Package, TrendingUp, AlertCircle, ClipboardList, Building2, Hash, X,
-  Calculator, User, Save, DollarSign, UserPlus
+  Calculator, User, Save, DollarSign, UserPlus, Upload, Image as ImageIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { jsPDF } from 'jspdf';
@@ -431,6 +431,22 @@ export const ManualQuote: React.FC<ManualQuoteProps> = ({
     items: [...prev.items, DEFAULT_ITEM()]
   }));
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert('A imagem deve ter no máximo 2MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setBudget({ ...budget, image: event.target?.result as string });
+    };
+    reader.readAsDataURL(file);
+  };
+
   const getClientName = (clientId?: string) => {
     if (!clientId) return 'Cliente não vinculado';
     return clients.find(c => c.id === clientId)?.name || 'Cliente não encontrado';
@@ -603,8 +619,53 @@ export const ManualQuote: React.FC<ManualQuoteProps> = ({
     doc.setTextColor(5, 150, 105); // emerald-600
     doc.text(`R$ ${formatCurrency(budget.totalValue)}`, 120, yPos + 16);
     
+    yPos += 35; // Move down below summary box
+    
+    // Add image if exists
+    if (budget.image) {
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(15, 23, 42);
+      doc.text("Anexo:", 20, yPos);
+      
+      try {
+        const imgProps = doc.getImageProperties(budget.image);
+        let imgWidth = 170; // max width
+        let imgHeight = (imgProps.height * imgWidth) / imgProps.width;
+        
+        // Calculate max allowed height so it doesn't trigger a new page (footer needs ~20 space)
+        const availableSpace = 280 - (yPos + 8); 
+        
+        // Let's cap the height to availableSpace OR a maximum of 120 (so it's not giant)
+        const maxHeight = Math.min(availableSpace, 120);
+        
+        if (imgHeight > maxHeight) {
+           imgHeight = maxHeight;
+           imgWidth = (imgProps.width * imgHeight) / imgProps.height;
+        }
+        
+        // Only if space is ridiculously small, we add a page (unlikely unless huge table)
+        if (availableSpace < 20) {
+           doc.addPage();
+           yPos = 30;
+           imgHeight = Math.min((imgProps.height * 170) / imgProps.width, 240);
+           imgWidth = (imgProps.width * imgHeight) / imgProps.height;
+        }
+        
+        const xPos = 20 + (170 - imgWidth) / 2;
+        doc.addImage(budget.image, 'JPEG', xPos, yPos + 8, imgWidth, imgHeight);
+        yPos += imgHeight + 15;
+      } catch (e) {
+        console.error("Erro ao adicionar imagem ao PDF", e);
+      }
+    }
+    
     // Footer message
-    yPos += 45;
+    if (yPos > 280) {
+      doc.addPage();
+      yPos = 30;
+    }
+    
     doc.setFontSize(9);
     doc.setFont("helvetica", "italic");
     doc.setTextColor(148, 163, 184); // slate-400
@@ -634,7 +695,7 @@ export const ManualQuote: React.FC<ManualQuoteProps> = ({
               <h2 className="font-bold text-slate-900 text-lg">Informações Gerais</h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
-              <div className="space-y-1.5 flex flex-col">
+              <div className="space-y-1.5 flex flex-col md:col-span-2">
                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Selecionar Cliente</label>
                 <div className="flex gap-2">
                   <select 
@@ -653,19 +714,6 @@ export const ManualQuote: React.FC<ManualQuoteProps> = ({
                     <Plus size={20} strokeWidth={2.5} />
                   </button>
                 </div>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Status Comercial</label>
-                <select 
-                  value={budget.status}
-                  onChange={e => setBudget({ ...budget, status: e.target.value as any })}
-                  className="w-full px-4 py-3.5 rounded-2xl border border-slate-200/80 bg-slate-50/50 hover:bg-white text-[15px] font-semibold text-slate-700 focus:border-emerald-300 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all cursor-pointer"
-                >
-                  <option value="draft">Rascunho</option>
-                  <option value="sent">Enviado</option>
-                  <option value="approved">Aprovado</option>
-                  <option value="lost">Perdido</option>
-                </select>
               </div>
               <div className="space-y-1.5 md:col-span-2">
                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Prazo de Entrega (em dias úteis)</label>
@@ -686,6 +734,36 @@ export const ManualQuote: React.FC<ManualQuoteProps> = ({
                   onChange={e => setBudget({ ...budget, notes: e.target.value })}
                   className="w-full px-4 py-3.5 bg-slate-50/50 border border-slate-200/80 rounded-2xl focus:border-emerald-300 focus:bg-white focus:ring-4 focus:ring-emerald-500/10 outline-none text-[15px] font-medium transition-all resize-none"
                 />
+              </div>
+              
+              <div className="md:col-span-2 pt-2 border-t border-slate-100/80 mt-2">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1 mb-2 block">Foto do Orçamento (Opcional)</label>
+                <div className="flex items-center gap-4">
+                  {budget.image ? (
+                    <div className="relative group inline-block">
+                      <img src={budget.image} alt="Anexo do Orçamento" className="w-32 h-32 object-cover rounded-2xl border border-slate-200/80 shadow-sm" />
+                      <button 
+                        onClick={() => setBudget({ ...budget, image: undefined })}
+                        className="absolute -top-2 -right-2 p-1.5 bg-rose-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-rose-600 hover:scale-105"
+                        title="Remover Imagem"
+                      >
+                        <X size={14} strokeWidth={3} />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="w-32 h-32 flex flex-col items-center justify-center border-2 border-dashed border-slate-300/80 rounded-2xl bg-slate-50/50 hover:bg-slate-100 hover:border-emerald-300 cursor-pointer transition-all text-slate-400 hover:text-emerald-500 group">
+                      <Upload size={24} className="mb-2 opacity-50 group-hover:opacity-100 transition-opacity" />
+                      <span className="text-[11px] font-bold uppercase tracking-widest">Anexar</span>
+                      <input type="file" accept="image/jpeg, image/png, image/webp" className="hidden" onChange={handleImageUpload} />
+                    </label>
+                  )}
+                  {!budget.image && (
+                    <p className="text-[13px] text-slate-500 font-medium">
+                      Anexe uma foto de referência ou mock. <br/>
+                      <span className="opacity-70 text-[11px]">Máx: 2MB (JPG/PNG/WEBP). Aparecerá no PDF.</span>
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           </section>
@@ -714,21 +792,6 @@ export const ManualQuote: React.FC<ManualQuoteProps> = ({
                   />
                 ))}
               </AnimatePresence>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
-              <button
-                onClick={addItem}
-                className="py-5 rounded-[2rem] border-2 border-dashed border-slate-200 bg-slate-50/50 hover:border-emerald-300 hover:bg-emerald-50 hover:shadow-lg hover:shadow-emerald-500/10 text-slate-500 hover:text-emerald-700 transition-all font-bold text-sm flex items-center justify-center gap-2 group"
-              >
-                <Plus size={18} strokeWidth={2.5} className="group-hover:scale-110 transition-transform" /> Adicionar Item Manual
-              </button>
-              <button
-                onClick={onAddCatalogItem}
-                className="py-5 rounded-[2rem] border-2 border-dashed border-emerald-200 bg-emerald-50/50 hover:border-emerald-400 hover:bg-emerald-100 hover:shadow-lg hover:shadow-emerald-500/20 text-emerald-700 transition-all font-bold text-sm flex items-center justify-center gap-2 group"
-              >
-                <Calculator size={18} strokeWidth={2.5} className="group-hover:scale-110 transition-transform" /> Buscar na Calculadora
-              </button>
             </div>
           </div>
         </div>

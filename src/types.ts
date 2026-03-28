@@ -129,4 +129,5 @@ export interface Budget {
   updatedAt: string;
   deliveryTime?: string;
   notes?: string;
+  image?: string;
 }

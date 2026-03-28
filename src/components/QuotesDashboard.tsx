@@ -208,7 +208,7 @@ export const QuotesDashboard: React.FC<QuotesDashboardProps> = ({ onEdit }) => {
           <p className="text-[15px] text-slate-500 font-medium mt-1">Gerencie, acompanhe e exporte seu histórico completo.</p>
         </div>
         
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+        <div className="flex flex-col w-full lg:w-auto lg:flex-row items-center gap-3">
           {/* Mobile Filter Toggle */}
           <button 
             onClick={() => setIsFilterDrawerOpen(true)}
@@ -218,11 +218,11 @@ export const QuotesDashboard: React.FC<QuotesDashboardProps> = ({ onEdit }) => {
           </button>
 
           {/* Mobile Export Buttons (Visible ONLY on mobile here) */}
-          <div className="flex lg:hidden w-full gap-2">
+          <div className="grid grid-cols-2 lg:hidden w-full gap-2">
             <button
               onClick={exportToPdf}
               disabled={filteredBudgets.length === 0}
-              className="flex-1 px-4 py-3 bg-emerald-600 justify-center text-white rounded-xl text-[14px] font-semibold flex items-center gap-2 hover:bg-emerald-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed group mr-0"
+              className="px-4 py-3 bg-emerald-600 justify-center text-white rounded-xl text-[14px] font-semibold flex items-center gap-2 hover:bg-emerald-700 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
               title="Exportar para PDF"
             >
               <Download size={18} className="group-hover:-translate-y-0.5 transition-transform" /> PDF
@@ -230,7 +230,7 @@ export const QuotesDashboard: React.FC<QuotesDashboardProps> = ({ onEdit }) => {
             <button
               onClick={exportToCsv}
               disabled={filteredBudgets.length === 0}
-              className="flex-1 px-4 py-3 bg-slate-900 justify-center text-white rounded-xl text-[14px] font-semibold flex items-center gap-2 hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+              className="px-4 py-3 bg-slate-900 justify-center text-white rounded-xl text-[14px] font-semibold flex items-center gap-2 hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
               title="Exportar para Excel (CSV)"
             >
               <Download size={18} className="group-hover:-translate-y-0.5 transition-transform" /> Excel
