@@ -82,6 +82,7 @@ export interface Client {
   id: string;
   name: string;
   company: string;
+  document: string; // CPF ou CNPJ
   phone: string;
   email: string;
   notes: string;

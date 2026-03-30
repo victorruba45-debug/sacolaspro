@@ -444,10 +444,12 @@ export const ManualQuote: React.FC<ManualQuoteProps> = ({
   const [newClientData, setNewClientData] = useState({
     name: '',
     company: '',
+    document: '',
     phone: '',
     email: '',
     notes: ''
   });
+  const [showPhotoSection, setShowPhotoSection] = useState(!!activeBudget?.image);
 
   useEffect(() => {
     setClients(storage.getClients());
@@ -540,7 +542,15 @@ export const ManualQuote: React.FC<ManualQuoteProps> = ({
 
   const getClientName = (clientId?: string) => {
     if (!clientId) return 'Cliente não vinculado';
-    return clients.find(c => c.id === clientId)?.name || 'Cliente não encontrado';
+    const client = clients.find(c => c.id === clientId);
+    if (!client) return 'Cliente não encontrado';
+    // Se for empresa, mostrar o nome da empresa; caso contrário, nome pessoal
+    return client.company ? client.company : client.name;
+  };
+
+  const getClientDocument = (clientId?: string) => {
+    if (!clientId) return '';
+    return clients.find(c => c.id === clientId)?.document || '';
   };
 
   const formatDeliveryTime = (val?: string) => {
@@ -553,10 +563,12 @@ export const ManualQuote: React.FC<ManualQuoteProps> = ({
     const clientName = getClientName(budget.clientId);
     const prazo = formatDeliveryTime(budget.deliveryTime);
     
+    const clientDoc = getClientDocument(budget.clientId);
     let text = `📄 *ORÇAMENTO | SacolaPro*\n`;
     text += `ID: #${budget.id.split('-')[0].toUpperCase()}\n`;
     if (clientName !== 'Cliente não vinculado') {
        text += `Cliente: *${clientName}*\n`;
+       if (clientDoc) text += `CPF/CNPJ: ${clientDoc}\n`;
     }
     text += `Data: ${new Date(budget.date).toLocaleDateString('pt-BR')}\n\n`;
     text += `📦 *ITENS DO PEDIDO:*\n`;
@@ -607,10 +619,12 @@ export const ManualQuote: React.FC<ManualQuoteProps> = ({
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.setTextColor(100, 116, 139); // slate-500
+    const clientDoc = getClientDocument(budget.clientId);
     doc.text(`ID: #${budget.id.split('-')[0].toUpperCase()}`, 20, 38);
     doc.text(`Data: ${dateFormatted}`, 20, 44);
     if (clientName !== 'Cliente não vinculado') {
        doc.text(`Cliente: ${clientName}`, 20, 50);
+       if (clientDoc) doc.text(`CPF/CNPJ: ${clientDoc}`, 20, 56);
     }
     
     // Draw line
@@ -799,7 +813,7 @@ export const ManualQuote: React.FC<ManualQuoteProps> = ({
                     className="flex-1 px-4 py-3.5 rounded-2xl border border-slate-200/80 bg-slate-50/50 hover:bg-white text-[15px] font-semibold text-slate-700 focus:border-emerald-300 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all cursor-pointer"
                   >
                     <option value="">Nenhum cliente selecionado</option>
-                    {clients.map(c => <option key={c.id} value={c.id}>{c.name} ({c.company})</option>)}
+                    {clients.map(c => <option key={c.id} value={c.id}>{c.company ? `${c.company} (${c.name})` : c.name}</option>)}
                   </select>
                   <button 
                     onClick={() => setIsClientModalOpen(true)}
@@ -831,35 +845,60 @@ export const ManualQuote: React.FC<ManualQuoteProps> = ({
                 />
               </div>
               
-              <div className="md:col-span-2 pt-2 border-t border-slate-100/80 mt-2">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1 mb-2 block">Foto do Orçamento (Opcional)</label>
-                <div className="flex items-center gap-4">
-                  {budget.image ? (
-                    <div className="relative group inline-block">
-                      <img src={budget.image} alt="Anexo do Orçamento" className="w-32 h-32 object-cover rounded-2xl border border-slate-200/80 shadow-sm" />
-                      <button 
-                        onClick={() => setBudget({ ...budget, image: undefined })}
-                        className="absolute -top-2 -right-2 p-1.5 bg-rose-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-rose-600 hover:scale-105"
-                        title="Remover Imagem"
-                      >
-                        <X size={14} strokeWidth={3} />
-                      </button>
-                    </div>
-                  ) : (
-                    <label className="w-32 h-32 flex flex-col items-center justify-center border-2 border-dashed border-slate-300/80 rounded-2xl bg-slate-50/50 hover:bg-slate-100 hover:border-emerald-300 cursor-pointer transition-all text-slate-400 hover:text-emerald-500 group">
-                      <Upload size={24} className="mb-2 opacity-50 group-hover:opacity-100 transition-opacity" />
-                      <span className="text-[11px] font-bold uppercase tracking-widest">Anexar</span>
-                      <input type="file" accept="image/jpeg, image/png, image/webp" className="hidden" onChange={handleImageUpload} />
-                    </label>
-                  )}
-                  {!budget.image && (
-                    <p className="text-[13px] text-slate-500 font-medium">
-                      Anexe uma foto de referência ou mock. <br/>
-                      <span className="opacity-70 text-[11px]">Máx: 2MB (JPG/PNG/WEBP). Aparecerá no PDF.</span>
-                    </p>
-                  )}
+              {/* Adicionar Detalhes toggle */}
+              {!showPhotoSection && (
+                <div className="md:col-span-2 pt-2 border-t border-slate-100/80 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowPhotoSection(true)}
+                    className="px-4 py-2.5 bg-white text-slate-600 rounded-xl text-xs font-bold hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition-all border border-slate-200 shadow-sm flex items-center gap-1.5"
+                  >
+                    <Plus size={14} strokeWidth={2.5}/> Foto do Orçamento (Opcional)
+                  </button>
                 </div>
-              </div>
+              )}
+
+              {showPhotoSection && (
+                <div className="md:col-span-2 pt-2 border-t border-slate-100/80 mt-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Foto do Orçamento (Opcional)</label>
+                    <button
+                      type="button"
+                      onClick={() => { setShowPhotoSection(false); setBudget({ ...budget, image: undefined }); }}
+                      className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                      title="Remover Seção"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    {budget.image ? (
+                      <div className="relative group inline-block">
+                        <img src={budget.image} alt="Anexo do Orçamento" className="w-32 h-32 object-cover rounded-2xl border border-slate-200/80 shadow-sm" />
+                        <button 
+                          onClick={() => setBudget({ ...budget, image: undefined })}
+                          className="absolute -top-2 -right-2 p-1.5 bg-rose-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-rose-600 hover:scale-105"
+                          title="Remover Imagem"
+                        >
+                          <X size={14} strokeWidth={3} />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="w-32 h-32 flex flex-col items-center justify-center border-2 border-dashed border-slate-300/80 rounded-2xl bg-slate-50/50 hover:bg-slate-100 hover:border-emerald-300 cursor-pointer transition-all text-slate-400 hover:text-emerald-500 group">
+                        <Upload size={24} className="mb-2 opacity-50 group-hover:opacity-100 transition-opacity" />
+                        <span className="text-[11px] font-bold uppercase tracking-widest">Anexar</span>
+                        <input type="file" accept="image/jpeg, image/png, image/webp" className="hidden" onChange={handleImageUpload} />
+                      </label>
+                    )}
+                    {!budget.image && (
+                      <p className="text-[13px] text-slate-500 font-medium">
+                        Anexe uma foto de referência ou mock. <br/>
+                        <span className="opacity-70 text-[11px]">Máx: 2MB (JPG/PNG/WEBP). Aparecerá no PDF.</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </section>
 
@@ -1017,6 +1056,16 @@ export const ManualQuote: React.FC<ManualQuoteProps> = ({
                       placeholder="Ex: Sacolas LTDA"
                     />
                   </div>
+                  <div className="md:col-span-2 space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">CPF / CNPJ</label>
+                    <input 
+                      type="text" 
+                      value={newClientData.document}
+                      onChange={e => setNewClientData({ ...newClientData, document: e.target.value })}
+                      className="w-full px-4 py-3.5 bg-slate-50/50 border border-slate-200 rounded-2xl focus:border-emerald-300 focus:bg-white focus:ring-4 focus:ring-emerald-500/10 outline-none text-[15px] font-medium transition-all"
+                      placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                    />
+                  </div>
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Telefone / WhatsApp</label>
                     <input 
@@ -1057,7 +1106,7 @@ export const ManualQuote: React.FC<ManualQuoteProps> = ({
                   setClients(updatedClients);
                   setBudget({ ...budget, clientId: client.id });
                   setIsClientModalOpen(false);
-                  setNewClientData({ name: '', company: '', phone: '', email: '', notes: '' });
+                  setNewClientData({ name: '', company: '', document: '', phone: '', email: '', notes: '' });
                 }}
                 className="w-full py-4 bg-slate-900 text-white rounded-2xl font-semibold text-[15px] hover:bg-emerald-600 hover:shadow-lg hover:shadow-emerald-500/20 transition-all duration-300"
               >

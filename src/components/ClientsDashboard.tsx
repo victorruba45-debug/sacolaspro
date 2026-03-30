@@ -26,6 +26,7 @@ export const ClientsDashboard: React.FC = () => {
   const [formData, setFormData] = useState<Omit<Client, 'id' | 'createdAt'>>({
     name: '',
     company: '',
+    document: '',
     phone: '',
     email: '',
     notes: ''
@@ -61,13 +62,14 @@ export const ClientsDashboard: React.FC = () => {
       setFormData({
         name: client.name,
         company: client.company,
+        document: client.document || '',
         phone: client.phone,
         email: client.email,
         notes: client.notes
       });
     } else {
       setEditingClient(null);
-      setFormData({ name: '', company: '', phone: '', email: '', notes: '' });
+      setFormData({ name: '', company: '', document: '', phone: '', email: '', notes: '' });
     }
     setIsModalOpen(true);
   };
@@ -167,6 +169,9 @@ export const ClientsDashboard: React.FC = () => {
                       <p className="text-[13px] text-slate-500 font-medium flex items-center gap-1.5 mt-1 truncate">
                         <Building2 size={14} className="text-slate-400 shrink-0" /> <span className="truncate">{client.company || 'Pessoa Física'}</span>
                       </p>
+                      {client.document && (
+                        <p className="text-[11px] text-slate-400 font-medium mt-0.5 pl-[22px] truncate">{client.document}</p>
+                      )}
                     </div>
                   </div>
 
@@ -279,6 +284,16 @@ export const ClientsDashboard: React.FC = () => {
                         onChange={e => setFormData({ ...formData, company: e.target.value })}
                         className="w-full px-4 py-3.5 bg-slate-50/50 border border-slate-200 rounded-2xl focus:border-indigo-300 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 outline-none text-[15px] font-medium transition-all"
                         placeholder="Ex: Sacolas LTDA"
+                      />
+                    </div>
+                    <div className="md:col-span-2 space-y-1.5">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">CPF / CNPJ</label>
+                      <input 
+                        type="text" 
+                        value={formData.document}
+                        onChange={e => setFormData({ ...formData, document: e.target.value })}
+                        className="w-full px-4 py-3.5 bg-slate-50/50 border border-slate-200 rounded-2xl focus:border-indigo-300 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 outline-none text-[15px] font-medium transition-all"
+                        placeholder="000.000.000-00 ou 00.000.000/0000-00"
                       />
                     </div>
                     <div className="space-y-1.5">

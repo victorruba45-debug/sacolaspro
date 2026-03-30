@@ -70,7 +70,9 @@ export const QuotesDashboard: React.FC<QuotesDashboardProps> = ({ onEdit }) => {
 
   const getClientName = (clientId?: string) => {
     if (!clientId) return 'Cliente não vinculado';
-    return clients.find(c => c.id === clientId)?.name || 'Cliente não encontrado';
+    const client = clients.find(c => c.id === clientId);
+    if (!client) return 'Cliente não encontrado';
+    return client.company ? client.company : client.name;
   };
 
   const isWithinPeriod = (dateStr: string, period: string) => {
