@@ -1083,40 +1083,33 @@ Gerado por SacolaPro
       snapshot: {
         material: bagType.name,
         size: `${cfg.width}x${cfg.height}x${cfg.side} cm`,
-        finish: cfg.lamination,
-        printing: `${cfg.colors} cores`,
+        sizeW: cfg.width.toString(),
+        sizeH: cfg.height.toString(),
+        sizeD: cfg.side.toString(),
+        handle: handleType.name,
+        bagColor: cfg.bagColor === 'white' ? 'Branca' : cfg.bagColor === 'kraft' ? 'Kraft Natural' : cfg.bagColor === 'black' ? 'Preto' : cfg.bagColor === 'cru' ? 'Algodão Cru' : 'Personalizada',
+        printColors: cfg.colors === 'black' ? 'Preto' : cfg.colors.startsWith('pantone') ? 'Pantone Especial' : `${cfg.colors} cores`,
+        finishing: cfg.lamination === 'none' ? 'Nenhum' : cfg.lamination === 'gloss' ? 'Laminação Brilho' : cfg.lamination === 'matte' ? 'Laminação Fosca' : cfg.lamination === 'uv' ? 'UV Localizado' : cfg.lamination,
+        printing: cfg.printingSides === 'both' ? 'Frente e Verso' : 'Apenas Frente',
+        extras: [cfg.hasEyelet ? 'Ilhós' : '', cfg.hasBottomReinforcement ? 'Reforço de Fundo' : '', cfg.hasMouthReinforcement ? 'Reforço de Boca' : '', cfg.isExclusiveDieCut ? 'Faca Exclusiva' : ''].filter(Boolean).join(', '),
         config: { ...cfg }
       }
     };
 
-    if (activeBudget) {
-      // Avoid adding the exact same configuration twice in the same batch
-      const isDuplicate = activeBudget.items.some(i => 
-        i.name === newItem.name && 
-        i.description === newItem.description && 
-        i.quantity === newItem.quantity &&
-        i.unitPrice === newItem.unitPrice
-      );
-      
-      if (!isDuplicate) {
-        setActiveBudget({
-          ...activeBudget,
-          items: [...activeBudget.items, newItem]
-        });
-      }
-    } else {
-      setActiveBudget({
-        id: crypto.randomUUID(),
-        origin: 'calculator',
-        status: 'draft',
-        date: new Date().toISOString(),
-        items: [newItem],
-        totalValue: newItem.subtotal,
-        totalCost: unitCost * cfg.quantity,
-        margin: ((newItem.subtotal - (unitCost * cfg.quantity)) / newItem.subtotal) * 100,
-        updatedAt: new Date().toISOString()
-      });
-    }
+    // Always create a fresh budget from the calculator with just this single item.
+    // This prevents stale activeBudget state from accumulating duplicate items
+    // when the user navigates back and forth between calculator and manual editor.
+    setActiveBudget({
+      id: crypto.randomUUID(),
+      origin: 'calculator',
+      status: 'draft',
+      date: new Date().toISOString(),
+      items: [newItem],
+      totalValue: newItem.subtotal,
+      totalCost: unitCost * cfg.quantity,
+      margin: ((newItem.subtotal - (unitCost * cfg.quantity)) / newItem.subtotal) * 100,
+      updatedAt: new Date().toISOString()
+    });
     setView('manual');
   };
 

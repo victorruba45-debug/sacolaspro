@@ -31,12 +31,23 @@ const SIZE_PRESETS: Record<string, { w: string; h: string; d: string }> = {
 
 const OPTIONAL_FIELDS = [
   { key: 'handle',        label: 'Alça',              placeholder: 'Ex: Fita Plástica', listId: 'list-handle' },
-  { key: 'printing',      label: 'Impressão',         placeholder: 'Ex: Apenas Frente', listId: 'list-printing' },
+  { key: 'bagColor',      label: 'Cor da Sacola',     placeholder: 'Ex: Branca, Kraft...', listId: 'list-bagColor' },
+  { key: 'printColors',   label: 'Cores',             placeholder: 'Ex: 1 Cor, 4 Cores...', listId: 'list-printColors' },
+  { key: 'printing',      label: 'Tipo de Impressão', placeholder: 'Ex: Serigrafia', listId: 'list-printing' },
   { key: 'finishing',     label: 'Acabamento',        placeholder: 'Ex: Laminação Brilho', listId: 'list-finishing' },
   { key: 'extras',        label: 'Extras',            placeholder: 'Ex: Ilhós, Reforço...', listId: 'list-extras' },
 ] as const;
 
 type OptionalKey = typeof OPTIONAL_FIELDS[number]['key'];
+
+const LIST_OPTIONS: Record<string, string[]> = {
+  handle: ["Fita Plástica Soldada", "Cordão de Nylon", "Cordão de Algodão", "Cordão de Gorgurão", "Alça de Papel", "Alça de TNT Costurada", "Alça de Algodão Costurada", "Sem Alça"],
+  printing: ["Apenas Frente", "Frente e Verso", "Sem Impressão", "Serigrafia 1 Cor", "Serigrafia 2 Cores", "Digital Policromia"],
+  finishing: ["Nenhum", "Laminação Brilho", "Laminação Fosca", "UV Localizado", "Hot Stamping"],
+  bagColor: ["Branca", "Kraft Natural", "Preto", "Personalizada"],
+  printColors: ["1 Cor", "2 Cores", "3 Cores", "4 Cores (CMYK)"],
+  extras: ["Ilhós", "Reforço de Fundo", "Reforço de Boca", "Faca Exclusiva", "Ilhós + Reforço de Fundo"]
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -68,10 +79,6 @@ const DEFAULT_ITEM = (): BudgetItem => ({
     sizeW: '',
     sizeH: '',
     sizeD: '',
-    handle: '',
-    printing: '',
-    finishing: '',
-    extras: '',
   }
 });
 
@@ -103,6 +110,18 @@ const DataLists: React.FC = () => (
       <option value="Laminação Fosca" />
       <option value="UV Localizado" />
       <option value="Hot Stamping" />
+    </datalist>
+    <datalist id="list-bagColor">
+      <option value="Branca" />
+      <option value="Kraft Natural" />
+      <option value="Preto" />
+      <option value="Personalizada" />
+    </datalist>
+    <datalist id="list-printColors">
+      <option value="1 Cor" />
+      <option value="2 Cores" />
+      <option value="3 Cores" />
+      <option value="4 Cores (CMYK)" />
     </datalist>
     <datalist id="list-extras">
       <option value="Ilhós" />
@@ -243,7 +262,7 @@ const ItemCard: React.FC<ItemCardProps> = ({
                 </div>
               </div>
 
-              {item.type === 'manual' && (
+              {(item.type === 'manual' || item.type === 'catalog') && (
                 <div className="bg-slate-50/50 border border-slate-100 rounded-3xl p-4 md:p-6 space-y-5 md:space-y-6">
                   <div className="space-y-3">
                     <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Tamanho da Embalagem</label>
@@ -285,21 +304,69 @@ const ItemCard: React.FC<ItemCardProps> = ({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-4 border-t border-slate-200/60">
-                    {OPTIONAL_FIELDS.map(f => (
-                      <div key={f.key} className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">{f.label}</label>
-                        <input
-                          type="text"
-                          list={f.listId}
-                          value={(item.snapshot as any)?.[f.key] || ''}
-                          onChange={e => updateSnapshot({ [f.key]: e.target.value })}
-                          className="w-full px-4 py-3.5 bg-white border border-slate-200 rounded-2xl focus:border-emerald-300 focus:ring-4 focus:ring-emerald-500/10 outline-none text-[15px] font-medium transition-all"
-                          placeholder={f.placeholder}
-                        />
-                      </div>
-                    ))}
-                  </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-7 pt-4 border-t border-slate-200/60">
+                      {OPTIONAL_FIELDS.filter(f => (item.snapshot as any)?.[f.key] !== undefined).map(f => (
+                        <div key={f.key} className="space-y-1.5 flex flex-col">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">{f.label}</label>
+                          <div className="relative flex flex-col gap-2">
+                            <div className="relative flex items-center">
+                              <input
+                                type="text"
+                                list={f.listId}
+                                value={(item.snapshot as any)?.[f.key] || ''}
+                                onChange={e => updateSnapshot({ [f.key]: e.target.value })}
+                                className="w-full px-4 py-3.5 pr-12 bg-white border border-slate-200 rounded-2xl focus:border-emerald-300 focus:ring-4 focus:ring-emerald-500/10 outline-none text-[15px] font-medium transition-all"
+                                placeholder={f.placeholder}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => updateSnapshot({ [f.key]: undefined })}
+                                className="absolute right-3 p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                                title="Remover Opção"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                            <select
+                               value=""
+                               onChange={e => { 
+                                 if (!e.target.value) return;
+                                 const currentVal = (item.snapshot as any)?.[f.key] || '';
+                                 let newVal = e.target.value;
+                                 if (f.key === 'extras' && currentVal) {
+                                   newVal = currentVal.includes(e.target.value) 
+                                     ? currentVal 
+                                     : `${currentVal}, ${e.target.value}`;
+                                 }
+                                 updateSnapshot({ [f.key]: newVal });
+                               }}
+                               className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200 rounded-2xl focus:border-emerald-300 focus:bg-white focus:ring-4 focus:ring-emerald-500/10 outline-none text-[14px] font-medium transition-all text-slate-500 cursor-pointer"
+                            >
+                               <option value="">Ou escolher da lista...</option>
+                               {LIST_OPTIONS[f.key]?.map((opt: string) => (
+                                  <option key={opt} value={opt}>{opt}</option>
+                               ))}
+                            </select>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                  {OPTIONAL_FIELDS.filter(f => (item.snapshot as any)?.[f.key] === undefined).length > 0 && (
+                    <div className="pt-4 mt-2 border-t border-slate-100/60 flex flex-wrap gap-2 items-center">
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mr-2">Adicionar Detalhes:</span>
+                      {OPTIONAL_FIELDS.filter(f => (item.snapshot as any)?.[f.key] === undefined).map(f => (
+                        <button
+                          key={f.key}
+                          type="button"
+                          onClick={() => updateSnapshot({ [f.key]: '' })}
+                          className="px-3 py-1.5 bg-white text-slate-600 rounded-xl text-xs font-bold hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition-all border border-slate-200 shadow-sm flex items-center gap-1.5"
+                        >
+                          <Plus size={14} strokeWidth={2.5}/> {f.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -431,20 +498,44 @@ export const ManualQuote: React.FC<ManualQuoteProps> = ({
     items: [...prev.items, DEFAULT_ITEM()]
   }));
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const compressImage = (file: File, maxWidth = 1200, quality = 0.8): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          if (width > maxWidth) {
+            height = (maxWidth / width) * height;
+            width = maxWidth;
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = reject;
+      };
+      reader.onerror = reject;
+    });
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      alert('A imagem deve ter no máximo 2MB.');
-      return;
+    try {
+      const compressedImage = await compressImage(file);
+      setBudget({ ...budget, image: compressedImage });
+    } catch (err) {
+      console.error('Erro ao processar imagem:', err);
+      alert('Erro ao comprimir imagem. Tente outra foto.');
     }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setBudget({ ...budget, image: event.target?.result as string });
-    };
-    reader.readAsDataURL(file);
   };
 
   const getClientName = (clientId?: string) => {
@@ -476,6 +567,8 @@ export const ManualQuote: React.FC<ManualQuoteProps> = ({
       if (snap) {
          if (snap.sizePreset || snap.sizeW) text += `  ▫️ Dimensões: ${buildSizeLabel(item)}\n`;
          if (snap.handle) text += `  ▫️ Alça: ${snap.handle}\n`;
+         if (snap.bagColor) text += `  ▫️ Cor da Sacola: ${snap.bagColor}\n`;
+         if (snap.printColors) text += `  ▫️ Cores: ${snap.printColors}\n`;
          if (snap.printing) text += `  ▫️ Impressão: ${snap.printing}\n`;
          if (snap.finishing) text += `  ▫️ Acabamento: ${snap.finishing}\n`;
          if (snap.extras) text += `  ▫️ Extras: ${snap.extras}\n`;
@@ -554,6 +647,8 @@ export const ManualQuote: React.FC<ManualQuoteProps> = ({
       if (snap) {
          if (snap.sizePreset || snap.sizeW) { doc.text(`Dimensões: ${buildSizeLabel(item)}`, 25, detailY); detailY += 5; }
          if (snap.handle) { doc.text(`Alça: ${snap.handle}`, 25, detailY); detailY += 5; }
+         if (snap.bagColor) { doc.text(`Cor da Sacola: ${snap.bagColor}`, 25, detailY); detailY += 5; }
+         if (snap.printColors) { doc.text(`Cores: ${snap.printColors}`, 25, detailY); detailY += 5; }
          if (snap.printing) { doc.text(`Impressão: ${snap.printing}`, 25, detailY); detailY += 5; }
          if (snap.finishing) { doc.text(`Acabamento: ${snap.finishing}`, 25, detailY); detailY += 5; }
          if (snap.extras) { doc.text(`Extras: ${snap.extras}`, 25, detailY); detailY += 5; }

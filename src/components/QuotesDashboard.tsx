@@ -58,6 +58,16 @@ export const QuotesDashboard: React.FC<QuotesDashboardProps> = ({ onEdit }) => {
     }
   };
 
+  const handleStatusChange = (id: string, newStatus: string) => {
+    const budget = budgets.find(b => b.id === id);
+    if (budget) {
+      const updatedBudget = { ...budget, status: newStatus as any };
+      storage.saveBudget(updatedBudget);
+      setBudgets(prev => prev.map(b => b.id === id ? updatedBudget : b));
+    }
+  };
+
+
   const getClientName = (clientId?: string) => {
     if (!clientId) return 'Cliente não vinculado';
     return clients.find(c => c.id === clientId)?.name || 'Cliente não encontrado';
@@ -99,8 +109,8 @@ export const QuotesDashboard: React.FC<QuotesDashboardProps> = ({ onEdit }) => {
   });
 
   const summary = {
-    totalValue: filteredBudgets.reduce((sum, b) => sum + b.totalValue, 0),
-    totalCost: filteredBudgets.reduce((sum, b) => sum + b.totalCost, 0),
+    totalValue: filteredBudgets.reduce((sum, b) => sum + (b.totalValue || 0), 0),
+    totalCost: filteredBudgets.reduce((sum, b) => sum + (b.totalCost || 0), 0),
     count: filteredBudgets.length
   };
   const summaryProfit = summary.totalValue - summary.totalCost;
@@ -114,11 +124,11 @@ export const QuotesDashboard: React.FC<QuotesDashboardProps> = ({ onEdit }) => {
       b.id.split('-')[0],
       new Date(b.date).toLocaleDateString('pt-BR'),
       getClientName(b.clientId),
-      statusMap[b.status as keyof typeof statusMap].label,
-      b.items.length.toString(),
-      b.totalCost.toFixed(2).replace('.', ','),
-      b.totalValue.toFixed(2).replace('.', ','),
-      (b.totalValue - b.totalCost).toFixed(2).replace('.', ',')
+      statusMap[b.status as keyof typeof statusMap]?.label || 'Desconhecido',
+      (b.items || []).length.toString(),
+      (b.totalCost || 0).toFixed(2).replace('.', ','),
+      (b.totalValue || 0).toFixed(2).replace('.', ','),
+      ((b.totalValue || 0) - (b.totalCost || 0)).toFixed(2).replace('.', ',')
     ]);
     
     const csvContent = [
@@ -152,11 +162,11 @@ export const QuotesDashboard: React.FC<QuotesDashboardProps> = ({ onEdit }) => {
       b.id.split('-')[0].toUpperCase(),
       new Date(b.date).toLocaleDateString('pt-BR'),
       getClientName(b.clientId),
-      statusMap[b.status as keyof typeof statusMap].label,
-      b.items.length.toString(),
-      `R$ ${b.totalCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-      `R$ ${b.totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-      `R$ ${(b.totalValue - b.totalCost).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+      statusMap[b.status as keyof typeof statusMap]?.label || 'Desconhecido',
+      (b.items || []).length.toString(),
+      `R$ ${(b.totalCost || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      `R$ ${(b.totalValue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+      `R$ ${((b.totalValue || 0) - (b.totalCost || 0)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
     ]);
 
     autoTable(doc, {
@@ -387,98 +397,123 @@ export const QuotesDashboard: React.FC<QuotesDashboardProps> = ({ onEdit }) => {
         </div>
       </div>
 
-      {/* Quotes List */}
-      <div className="grid grid-cols-1 gap-4">
-        <AnimatePresence mode="popLayout">
-          {sortedBudgets.map((budget) => (
-            <motion.div
-              layout
-              key={budget.id}
-              initial={{ opacity: 0, scale: 0.98, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-              className="bg-white rounded-2xl border border-slate-200/60 p-4 md:p-5 hover:border-slate-300 hover:shadow-xl hover:shadow-slate-200/20 transition-all group flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-5 relative overflow-hidden"
-            >
-              {/* Subtle accent bar matching status color if desired, optional */}
-              <div className="flex items-start md:items-center gap-3 md:gap-5">
-                <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 shrink-0 group-hover:scale-105 transition-transform duration-300">
-                  <FileText size={20} className="md:w-6 md:h-6" strokeWidth={1.5} />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2.5 tracking-tight">
-                    {getClientName(budget.clientId)}
-                    <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 border ${statusMap[budget.status as keyof typeof statusMap].color}`}>
-                      {statusMap[budget.status as keyof typeof statusMap].icon} {statusMap[budget.status as keyof typeof statusMap].label}
-                    </span>
-                  </h3>
-                  <p className="text-[13px] text-slate-500 font-medium mt-1.5 flex items-center gap-2">
-                    <Calendar size={14} className="opacity-70" /> {new Date(budget.date).toLocaleDateString('pt-BR')}
-                    <span className="w-1 h-1 rounded-full bg-slate-300 block mx-1" />
-                    {budget.items.length} {budget.items.length === 1 ? 'item' : 'itens'}
-                    <span className="w-1 h-1 rounded-full bg-slate-300 block mx-1" />
-                    ID: {budget.id.split('-')[0]}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between md:justify-end gap-6 md:gap-8 border-t border-slate-100 md:border-0 pt-4 md:pt-0">
-                <div className="text-left md:text-right">
-                  <p className="text-xl font-black text-slate-900 tracking-tight">R$ {budget.totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                  <p className="text-[11px] text-emerald-600 font-bold uppercase tracking-widest mt-0.5">
-                    {budget.margin.toFixed(1)}% margem
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-slate-50 p-1 rounded-xl border border-slate-200/60 shadow-sm mr-2">
-                    <button 
-                      onClick={() => onEdit(budget)}
-                      className="p-2 hover:bg-white rounded-lg text-slate-400 hover:text-indigo-600 transition-all shadow-sm"
-                      title="Sair do modo leitura e Editar"
-                    >
-                      <Pencil size={16} strokeWidth={2.5}/>
-                    </button>
-                    <button 
-                      onClick={() => handleDuplicate(budget.id)}
-                      className="p-2 hover:bg-white rounded-lg text-slate-400 hover:text-amber-600 transition-all shadow-sm"
-                      title="Duplicar Orçamento"
-                    >
-                      <Copy size={16} strokeWidth={2.5}/>
-                    </button>
-                    <div className="w-px h-4 bg-slate-200 mx-1 block" />
-                    <button 
-                      onClick={() => handleDelete(budget.id)}
-                      className="p-2 hover:bg-white rounded-lg text-slate-400 hover:text-rose-600 transition-all shadow-sm"
-                      title="Excluir Permanentemente"
-                    >
-                      <Trash2 size={16} strokeWidth={2.5}/>
-                    </button>
-                  </div>
-                  <button 
-                    onClick={() => onEdit(budget)}
-                    className="w-12 h-12 rounded-xl bg-slate-900 text-white flex items-center justify-center hover:bg-emerald-600 transition-all shadow-md shadow-slate-900/10 group-hover:shadow-emerald-500/20 group-hover:-translate-y-1 duration-300"
+      {/* Quotes List Table View */}
+      <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[700px]">
+            <thead>
+              <tr className="bg-slate-50/80 border-b border-slate-200/60 text-[11px] uppercase tracking-widest text-slate-400 font-bold">
+                <th className="p-4 pl-6 whitespace-nowrap">ID / Data</th>
+                <th className="p-4 whitespace-nowrap">Cliente</th>
+                <th className="p-4 whitespace-nowrap">Status</th>
+                <th className="p-4 whitespace-nowrap">Itens</th>
+                <th className="p-4 text-right whitespace-nowrap">Valor (R$)</th>
+                <th className="p-4 pr-6 text-right whitespace-nowrap">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <AnimatePresence mode="popLayout">
+                {sortedBudgets.map((budget) => (
+                  <motion.tr
+                    layout
+                    key={budget.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.98 }}
+                    transition={{ duration: 0.2 }}
+                    className="group border-b border-slate-100 hover:bg-slate-50/50 transition-colors last:border-0"
                   >
-                    <ChevronRight size={20} strokeWidth={2.5}/>
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+                    <td className="p-4 pl-6 align-middle">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-slate-800 text-[13px]">{budget.id.split('-')[0].toUpperCase()}</span>
+                        <span className="text-slate-500 font-medium text-xs flex items-center gap-1 mt-0.5">
+                          <Calendar size={12} className="opacity-70" /> {budget.date ? new Date(budget.date).toLocaleDateString('pt-BR') : 'Sem data'}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="p-4 align-middle">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100 hidden sm:flex">
+                          <FileText size={14} strokeWidth={2.5} />
+                        </div>
+                        <span className="font-bold text-slate-900 text-[14px] leading-tight max-w-[150px] sm:max-w-xs truncate" title={getClientName(budget.clientId)}>
+                          {getClientName(budget.clientId)}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="p-4 align-middle">
+                      <div className="relative inline-block min-w-[120px]">
+                        <select
+                          value={budget.status || 'draft'}
+                          onChange={(e) => handleStatusChange(budget.id, e.target.value)}
+                          className={`w-full appearance-none rounded-md text-[11px] font-black uppercase tracking-widest px-3 py-1.5 pr-8 outline-none cursor-pointer transition-all border ${statusMap[budget.status as keyof typeof statusMap]?.color || 'bg-slate-100'} hover:brightness-95`}
+                        >
+                          <option value="draft">Rascunho</option>
+                          <option value="sent">Enviado</option>
+                          <option value="approved">Aprovado</option>
+                          <option value="lost">Perdido</option>
+                        </select>
+                        <ChevronRight size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-50 rotate-90" />
+                      </div>
+                    </td>
+                    <td className="p-4 align-middle">
+                      <span className="text-[13px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
+                        {(budget.items || []).length} {(budget.items || []).length === 1 ? 'item' : 'itens'}
+                      </span>
+                    </td>
+                    <td className="p-4 text-right align-middle">
+                      <div className="flex flex-col items-end">
+                        <span className="font-black text-slate-900 text-[15px]">R$ {(budget.totalValue || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-widest mt-0.5 max-w-[100px] truncate" title={`${(budget.margin || 0).toFixed(1)}% margem`}>
+                          {(budget.margin || 0).toFixed(1)}% marg.
+                        </span>
+                      </div>
+                    </td>
+                    <td className="p-4 pr-6 align-middle text-right">
+                       <div className="flex items-center justify-end gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <button 
+                            onClick={() => onEdit(budget)}
+                            className="p-2 hover:bg-white rounded-lg text-slate-400 hover:text-indigo-600 transition-all border border-transparent hover:border-slate-200 hover:shadow-sm"
+                            title="Editar"
+                          >
+                            <Pencil size={16} strokeWidth={2.5}/>
+                          </button>
+                          <button 
+                            onClick={() => handleDuplicate(budget.id)}
+                            className="p-2 hover:bg-white rounded-lg text-slate-400 hover:text-amber-600 transition-all border border-transparent hover:border-slate-200 hover:shadow-sm"
+                            title="Duplicar"
+                          >
+                            <Copy size={16} strokeWidth={2.5}/>
+                          </button>
+                          <div className="w-px h-4 bg-slate-200 mx-0.5 block" />
+                          <button 
+                            onClick={() => handleDelete(budget.id)}
+                            className="p-2 hover:bg-white rounded-lg text-slate-400 hover:text-rose-600 transition-all border border-transparent hover:border-slate-200 hover:shadow-sm"
+                            title="Excluir"
+                          >
+                            <Trash2 size={16} strokeWidth={2.5}/>
+                          </button>
+                        </div>
+                    </td>
+                  </motion.tr>
+                ))}
+              </AnimatePresence>
+            </tbody>
+          </table>
+        </div>
 
         {sortedBudgets.length === 0 && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="py-24 text-center space-y-4 bg-slate-50/50 rounded-[3rem] border-2 border-dashed border-slate-200"
+            className="py-16 text-center space-y-4"
           >
-            <div className="w-20 h-20 bg-white rounded-[2rem] flex items-center justify-center text-slate-300 mx-auto shadow-sm border border-slate-100">
-              <Search size={36} strokeWidth={1.5} />
+            <div className="w-16 h-16 bg-slate-50 flex items-center justify-center text-slate-300 mx-auto rounded-full border border-slate-100">
+              <Search size={24} strokeWidth={2} />
             </div>
             <div>
-              <p className="text-lg font-bold text-slate-700">Nenhum orçamento listado.</p>
-              <p className="text-sm font-medium text-slate-400 mt-1 max-w-sm mx-auto">Sua busca ou filtros não retornaram resultados. Tente limpar os filtros ou inicie um novo orçamento.</p>
+              <p className="font-bold text-slate-700">Nenhum orçamento listado.</p>
+              <p className="text-sm font-medium text-slate-400 mt-1 max-w-sm mx-auto">Sua busca ou filtros não retornaram resultados.</p>
             </div>
           </motion.div>
         )}

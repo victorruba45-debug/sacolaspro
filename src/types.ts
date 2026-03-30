@@ -102,6 +102,8 @@ export interface BudgetItemSnapshot {
   handle?: string;
   finishing?: string;
   extras?: string;
+  bagColor?: string;
+  printColors?: string;
 }
 
 export interface BudgetItem {
